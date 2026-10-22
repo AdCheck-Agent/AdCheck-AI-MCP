@@ -10,7 +10,7 @@ from psycopg.rows import dict_row
 from psycopg.types.json import Jsonb
 
 from rag_mcp.config import Settings
-from rag_mcp.errors import DocumentError, StorageUnavailable
+from rag_mcp.errors import AttachedDocumentsTooLarge, DocumentError, StorageUnavailable
 from rag_mcp.retrieval.embeddings import Embeddings
 from rag_mcp.schemas import DocumentRecord, DocumentResult, RetrievedEvidence
 
@@ -24,7 +24,6 @@ class Retriever(Protocol):
         company_id: str | None = None,
         top_k: int = 5,
         min_score: float = 0.0,
-        include_synthetic: bool = False,
         document_ids: list[str] | None = None,
     ) -> list[RetrievedEvidence]: ...
 
@@ -43,7 +42,6 @@ def _result(row: dict, count: int) -> DocumentResult:
                 "document_type",
                 "title",
                 "version",
-                "synthetic",
                 "revision",
             )
         },
@@ -128,11 +126,11 @@ class PgVectorStore:
                 return _result(previous, (await cur.fetchone())["n"])
             cur = await conn.execute(
                 "INSERT INTO adcheck_rag.documents "
-                "(scope,document_id,company_id,corpus,document_type,title,version,synthetic,"
-                "checksum,revision,metadata) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
+                "(scope,document_id,company_id,corpus,document_type,title,version,"
+                "checksum,revision,metadata) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) "
                 "ON CONFLICT(scope,document_id) DO UPDATE SET "
                 "document_type=EXCLUDED.document_type,title=EXCLUDED.title,version=EXCLUDED.version,"
-                "synthetic=EXCLUDED.synthetic,checksum=EXCLUDED.checksum,revision=EXCLUDED.revision,"
+                "checksum=EXCLUDED.checksum,revision=EXCLUDED.revision,"
                 "metadata=EXCLUDED.metadata,updated_at=now() RETURNING *",
                 (
                     scope,
@@ -141,8 +139,8 @@ class PgVectorStore:
                     document.corpus,
                     document.document_type,
                     document.title,
-                    document.version,
-                    document.synthetic,
+                    # Assigned here, not by authors: unchanged re-uploads keep it, edits bump it.
+                    f"v{revision + 1}",
                     checksum,
                     revision + 1,
                     Jsonb(document.metadata),
@@ -207,9 +205,13 @@ class PgVectorStore:
         company_id: str | None = None,
         top_k: int = 5,
         min_score: float = 0.0,
-        include_synthetic: bool = False,
         document_ids: list[str] | None = None,
     ) -> list[RetrievedEvidence]:
+        """Rank by similarity, or with document_ids return every chunk of the attached files.
+
+        Attached files are the caller's chosen scope, so top_k/min_score do not apply there;
+        chunks keep the file order and AttachedDocumentsTooLarge replaces silent truncation.
+        """
         if collection not in ("social", "corporate") or (
             collection == "corporate" and not company_id
         ):
@@ -221,40 +223,45 @@ class PgVectorStore:
         scope = _scope(company_id)
         async with self.connection() as conn:
             cur = await conn.execute(
-                "SELECT 1 FROM adcheck_rag.documents WHERE scope=%s "
-                "AND (%s OR NOT synthetic) "
-                "AND (%s::text[] IS NULL OR document_id = ANY(%s::text[])) LIMIT 1",
-                (scope, include_synthetic, document_ids, document_ids),
+                "SELECT count(*) AS n, coalesce(sum(length(c.content)), 0) AS chars "
+                "FROM adcheck_rag.chunks c JOIN adcheck_rag.documents d USING(scope,document_id) "
+                "WHERE d.scope=%s AND d.corpus=%s "
+                "AND (%s::text[] IS NULL OR d.document_id = ANY(%s::text[]))",
+                (scope, collection, document_ids, document_ids),
             )
-            if not await cur.fetchone():
-                return []
+            found = await cur.fetchone()
+        if not found["n"]:
+            return []
+        limit = self.settings.rag_max_attached_chars
+        if document_ids is not None and found["chars"] > limit:
+            raise AttachedDocumentsTooLarge(found["chars"], limit)
         pieces = await self.embeddings.split(query)
         if not pieces:
             raise DocumentError("검색어에 본문이 없습니다.")
         vectors = await self.embeddings.embed(pieces)
-        vector = [sum(v[i] for v in vectors) / len(vectors) for i in range(384)]
-        async with self.connection() as conn:
-            cur = await conn.execute(
-                "SELECT d.*,c.chunk_id,c.section,c.content,c.metadata AS chunk_metadata,"
-                "1-(c.embedding <=> %s::vector) AS score "
-                "FROM adcheck_rag.chunks c JOIN adcheck_rag.documents d USING(scope,document_id) "
-                "WHERE d.scope=%s AND d.corpus=%s AND (%s OR NOT d.synthetic) "
-                "AND (%s::text[] IS NULL OR d.document_id = ANY(%s::text[])) "
+        vector = str([sum(v[i] for v in vectors) / len(vectors) for i in range(384)])
+        select = (
+            "SELECT d.*,c.chunk_id,c.section,c.content,c.metadata AS chunk_metadata,"
+            "1-(c.embedding <=> %s::vector) AS score "
+            "FROM adcheck_rag.chunks c JOIN adcheck_rag.documents d USING(scope,document_id) "
+            "WHERE d.scope=%s AND d.corpus=%s "
+        )
+        if document_ids is None:
+            sql = select + (
                 "AND 1-(c.embedding <=> %s::vector)>=%s "
-                "ORDER BY c.embedding <=> %s::vector,c.document_id,c.chunk_id LIMIT %s",
-                (
-                    str(vector),
-                    scope,
-                    collection,
-                    include_synthetic,
-                    document_ids,
-                    document_ids,
-                    str(vector),
-                    min_score,
-                    str(vector),
-                    top_k,
-                ),
+                "ORDER BY c.embedding <=> %s::vector,c.document_id,c.chunk_id LIMIT %s"
             )
+            params = (vector, scope, collection, vector, min_score, vector, top_k)
+        else:
+            # Chunks stored before ordinal existed fall back to chunk_id order.
+            sql = select + (
+                "AND d.document_id = ANY(%s::text[]) "
+                "ORDER BY array_position(%s::text[], d.document_id),"
+                "(c.metadata->>'ordinal')::int NULLS LAST,c.chunk_id"
+            )
+            params = (vector, scope, collection, document_ids, document_ids)
+        async with self.connection() as conn:
+            cur = await conn.execute(sql, params)
             rows = await cur.fetchall()
         evidence = []
         for row in rows:
@@ -274,7 +281,6 @@ class PgVectorStore:
                     source_urls=meta.get("source_urls", []),
                     source_ids=meta.get("source_ids", []),
                     row_id=meta.get("row_id"),
-                    synthetic=row["synthetic"],
                     score=row["score"],
                     published_at=meta.get("published_at"),
                     category=meta.get("category"),

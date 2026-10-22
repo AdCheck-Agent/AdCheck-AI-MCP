@@ -29,7 +29,6 @@ async def test_uploaded_demo_documents_through_mcp(db_store):
                 )
                 assert uploaded.status_code == 200, uploaded.text
                 assert uploaded.json()["revision"] == 1
-                assert uploaded.json()["synthetic"] is True
                 repeated = await http.put(path, files={"file": (sample.name, sample.read_bytes())})
                 assert repeated.status_code == 200
                 assert repeated.json()["revision"] == 1
@@ -43,7 +42,6 @@ async def test_uploaded_demo_documents_through_mcp(db_store):
             rest_query = {
                 "query": "인권 존중",
                 "company_id": "seojun_roasters",
-                "include_synthetic": True,
                 "document_ids": ["seojun_roasters-corporate_values"],
             }
             rest = await http.post("/tools/search_corporate_value", json=rest_query)
@@ -79,7 +77,7 @@ async def test_uploaded_demo_documents_through_mcp(db_store):
                     default = await session.call_tool("search_corporate_value", arguments)
                     assert not default.isError
                     assert default.structuredContent["related_criteria"] == []
-                    assert SearchResult.model_validate(default.structuredContent).status == "empty"
+                    assert SearchResult.model_validate(default.structuredContent).status == "ok"
 
                     for company in ("seojun_roasters", "taegeon_beauty"):
                         result = await session.call_tool(
@@ -87,7 +85,6 @@ async def test_uploaded_demo_documents_through_mcp(db_store):
                             arguments
                             | {
                                 "company_id": company,
-                                "include_synthetic": True,
                                 "document_ids": [f"{company}-corporate_values"],
                             },
                         )
@@ -95,9 +92,7 @@ async def test_uploaded_demo_documents_through_mcp(db_store):
                         payload = SearchResult.model_validate(result.structuredContent)
                         assert payload.status == "ok" and not payload.mock
                         assert payload.evidence
-                        assert all(
-                            e.company_id == company and e.synthetic for e in payload.evidence
-                        )
+                        assert all(e.company_id == company for e in payload.evidence)
                         assert all(e.chunk_id and e.rule_id and e.version for e in payload.evidence)
                         assert all(
                             e.document_id == f"{company}-corporate_values" for e in payload.evidence
@@ -109,11 +104,7 @@ async def test_uploaded_demo_documents_through_mcp(db_store):
                     assert deleted.status_code == 204
                     after_delete = await session.call_tool(
                         "search_corporate_value",
-                        arguments
-                        | {
-                            "include_synthetic": True,
-                            "document_ids": ["seojun_roasters-corporate_values"],
-                        },
+                        arguments | {"document_ids": ["seojun_roasters-corporate_values"]},
                     )
                     assert not after_delete.isError
                     assert (

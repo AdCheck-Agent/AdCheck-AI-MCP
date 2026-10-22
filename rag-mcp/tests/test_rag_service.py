@@ -83,3 +83,44 @@ async def test_adapter_preserves_related_criteria_and_result_metadata() -> None:
             assert result.message == payload["message"]
             assert result.evidence[0].source_urls == payload["evidence"][0]["source_urls"]
             assert result.evidence[0].score == 0.8
+
+
+async def test_too_large_attachment_is_a_status_not_an_error() -> None:
+    from rag_mcp.errors import AttachedDocumentsTooLarge
+
+    class LargeStore:
+        async def search(self, *args, **kwargs):
+            raise AttachedDocumentsTooLarge(40000, 30000)
+
+    large = create_app(store=LargeStore())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=large), base_url="http://rag-mcp:8001"
+    ) as http:
+        response = await http.post(
+            "/tools/search_corporate_value",
+            json={"query": "문구", "company_id": "demo", "document_ids": ["doc"]},
+        )
+        assert response.status_code == 200
+        assert response.json()["status"] == "too_large"
+        assert response.json()["evidence"] == []
+        result = await RagMCPClient(http).search_corporate_value("문구", "demo")
+        assert result.status == "too_large" and result.evidence == []
+
+
+async def test_agent_adapter_forwards_attached_document_ids() -> None:
+    calls = []
+
+    class RecordingStore:
+        async def search(self, query, **kwargs):
+            calls.append(kwargs)
+            return []
+
+    recording = create_app(store=RecordingStore())
+    async with httpx.AsyncClient(
+        transport=httpx.ASGITransport(app=recording), base_url="http://rag-mcp:8001"
+    ) as http:
+        client = RagMCPClient(http)
+        await client.search_corporate_value("문구", "demo", document_ids=["demo-ethics"])
+        await client.search_corporate_value("문구", "demo")
+    assert calls[0]["document_ids"] == ["demo-ethics"]
+    assert calls[1]["document_ids"] is None

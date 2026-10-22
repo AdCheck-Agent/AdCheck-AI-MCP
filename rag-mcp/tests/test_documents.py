@@ -30,8 +30,7 @@ def test_all_samples_have_equivalent_csv_xlsx() -> None:
         assert rows == parse_policies(xlsx.name, xlsx.read_bytes(), Settings())
         # corporate_values adds brand-direction rows (mission, tone, audience) to the 3 rules.
         expected = 8 if csv_file.stem == "corporate_values" else 3
-        assert len(rows) == expected and all(r.synthetic for r in rows)
-        assert len({r.version for r in rows}) == 1
+        assert len(rows) == expected
 
 
 @pytest.mark.parametrize("extension", ["pdf", "docx", "xls", "txt"])
@@ -52,7 +51,6 @@ def test_bad_headers_duplicate_rows_and_company_mismatch() -> None:
         [rows[0], rows[0]],
         [rows[0], rows[1] | {"company_id": "other"}],
         [rows[0] | {"content": "   "}],
-        [rows[0] | {"synthetic": "maybe"}],
     ):
         with pytest.raises(DocumentError):
             parse_policies("x.csv", serialize(invalid), Settings())
@@ -85,7 +83,7 @@ async def test_row_chunking_preserves_metadata(embeddings) -> None:
 async def test_social_manifest_excludes_corporate_and_research(embeddings) -> None:
     docs = await social_documents(DATA, embeddings)
     assert len(docs) == 12
-    assert all(d.company_id is None and not d.synthetic for d in docs)
+    assert all(d.company_id is None for d in docs)
     assert all(d.metadata["source_urls"] and d.chunks for d in docs)
 
 
@@ -105,3 +103,21 @@ def test_upload_pdf_rejected() -> None:
             "/api/v1/companies/demo/documents/demo", files={"file": ("policy.pdf", b"%PDF")}
         )
     assert response.status_code == 415
+
+
+def test_xlsx_accepts_blank_trailing_optional_columns() -> None:
+    from openpyxl import Workbook
+
+    row = parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings())[0].model_dump(mode="json")
+    order = [c for c in COLUMNS if c not in ("source_url", "published_at")]
+    order += ["source_url", "published_at"]
+    wb = Workbook()
+    sheet = wb.active
+    sheet.title = "policies"
+    sheet.append(order)
+    sheet.append([row[c] for c in order[:-2]])  # Excel stores no cells for the blank tail
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    parsed = parse_policies("x.xlsx", buffer.getvalue(), Settings())
+    assert parsed[0].source_url is None and parsed[0].published_at is None
+    assert parsed[0].content == row["content"]

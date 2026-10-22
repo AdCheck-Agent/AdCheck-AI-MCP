@@ -14,7 +14,6 @@ CREATE TABLE IF NOT EXISTS adcheck_rag.documents (
     document_type text NOT NULL,
     title text NOT NULL,
     version text NOT NULL,
-    synthetic boolean NOT NULL,
     checksum text NOT NULL,
     revision integer NOT NULL DEFAULT 1,
     metadata jsonb NOT NULL,
@@ -36,6 +35,9 @@ CREATE TABLE IF NOT EXISTS adcheck_rag.chunks (
     FOREIGN KEY (scope, document_id)
         REFERENCES adcheck_rag.documents(scope, document_id) ON DELETE CASCADE
 );
+
+-- Databases created before the synthetic flag was removed.
+ALTER TABLE adcheck_rag.documents DROP COLUMN IF EXISTS synthetic;
 
 -- Exact cosine search is sufficient for the initial corpus and keeps filtered top-k exact.
 -- Add a measured ANN index only when corpus size and query timings justify it.

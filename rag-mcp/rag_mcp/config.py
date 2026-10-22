@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     rag_model_cache: Path = ROOT / ".cache" / "embeddings"
     rag_max_upload_bytes: int = Field(default=5 * 1024 * 1024, ge=1)
     rag_max_rows: int = Field(default=1000, ge=1, le=10000)
+    rag_max_attached_chars: int = Field(default=30000, ge=1)
     rag_chunk_tokens: int = Field(default=96, ge=16, le=110)
     rag_chunk_overlap: int = Field(default=12, ge=0, le=15)
     rag_statement_timeout_ms: int = Field(default=15000, ge=100)
