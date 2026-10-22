@@ -28,6 +28,7 @@ class ReviewState(TypedDict):
     rule_hits: list[RuleHit]
     social_context_evidence: list[Evidence]
     corporate_value_evidence: list[Evidence]
+    rag_errors: list[str]
     external_evidence: list[RecentIssue]
     external_search_query: str | None
     external_search_attempted: bool
@@ -47,6 +48,7 @@ def initial_state(request: ReviewRequest) -> ReviewState:
         rule_hits=[],
         social_context_evidence=[],
         corporate_value_evidence=[],
+        rag_errors=[],
         external_evidence=[],
         external_search_query=None,
         external_search_attempted=False,

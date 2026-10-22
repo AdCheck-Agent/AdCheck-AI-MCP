@@ -1,0 +1,4 @@
+﻿row_id,company_id,document_id,document_type,title,section,content,version,source_url,published_at,synthetic
+seojun_roasters-corporate_values-001,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치 — 합성,고객 존중,커피 지식·가격·직업·경제적 형편으로 고객의 인격과 방문 자격을 평가하지 않는다. 저렴한 상품을 선택하는 사람을 조롱하지 않는다.,v1,,,True
+seojun_roasters-corporate_values-002,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치 — 합성,직원·구직자 존중,바리스타·아르바이트·배달 노동자·구직자를 하찮은 사람으로 표현하지 않는다. 특정 성별과 외모를 고객응대 능력의 기준으로 삼지 않는다.,v1,,,True
+seojun_roasters-corporate_values-003,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치 — 합성,역사·지역사회 존중,역사적 기념일·참사·고인 표현을 할인 행사나 커피의 강도를 강조하는 유머로 사용하지 않는다. 추모와 판매 유도를 구분한다.,v1,,,True
