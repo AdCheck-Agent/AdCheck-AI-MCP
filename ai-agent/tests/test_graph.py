@@ -3,7 +3,7 @@ import pytest
 from app.graph.nodes.rule_filter import rule_filter
 from app.graph.nodes.validate_result import validate_result
 from app.graph.state import ReviewState, initial_state
-from app.schemas.review import ReviewRequest, ReviewResponse
+from app.schemas.review import Evidence, Finding, ReviewRequest, ReviewResponse
 
 
 def request() -> ReviewRequest:
@@ -40,18 +40,32 @@ def test_full_graph_branches(
     monkeypatch: pytest.MonkeyPatch, sufficient: bool, risk: str, expected: str
 ) -> None:
     # Test-only reviewer simulates future decisions; production mock never fabricates sufficiency.
+    evidence = Evidence(document="기준 v1", section="역사", snippet="사건 소비 금지")
+    found = Finding(
+        category="historical_context",
+        severity="high",
+        quote="신상품",
+        reason="테스트 전용",
+        evidence=[evidence],
+        suggestion="새 소식",
+        needs_human_review=False,
+    )
+
     def reviewer(state: ReviewState) -> dict[str, object]:
         return {
+            "social_context_evidence": [evidence],
             "evidence_sufficient": sufficient,
             "risk": risk,
+            "findings": [found] if risk == "yes" else [],
             "summary": "테스트 전용 판정",
         }
 
     monkeypatch.setattr(graph_module, "review_llm", reviewer)
     graph = graph_module.build_graph()
-    updates = list(graph.stream(initial_state(request())))
+    clean = ReviewRequest(text="신상품을 소개합니다", context={"channel": "sns"})
+    updates = list(graph.stream(initial_state(clean)))
     assert list(updates[-1]) == ["validate_result"]
-    result = ReviewResponse.model_validate(graph.invoke(initial_state(request())))
+    result = ReviewResponse.model_validate(graph.invoke(initial_state(clean)))
     assert result.status == expected
 
 

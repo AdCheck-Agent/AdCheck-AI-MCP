@@ -1,16 +1,41 @@
 from app.graph.state import ReviewState
+from app.llm.client import get_review_model
+from app.llm.judge import (
+    MOCK_SUMMARY,
+    SYSTEM_PROMPT,
+    build_catalog,
+    build_user_prompt,
+    call_model,
+    external_query,
+    needs_review,
+    note_oversized,
+    resolve,
+)
 
 
 def review_llm(state: ReviewState) -> dict:
-    # TODO(AI 1): structured LLM context judgment, evidence sufficiency and conflict detection.
-    # A rule match alone does not establish a violation; no invented evidence in mock mode.
-    # TODO(AI 1): set external_search_query ONLY for a public fact that web search can resolve.
-    # After the one external search, reassess external_evidence without treating hits as proof.
-    return {
-        "evidence_sufficient": False,
-        "risk": "uncertain",
-        "findings": [],
-        "summary": (
-            "[MOCK] LLM 판정은 아직 구현하지 않았습니다. 검색 여부와 별개로 사람 검토가 필요합니다."
-        ),
-    }
+    """Judge the ad text with rule hits and retrieved evidence.
+
+    Rule hits are hints, never verdicts. The model always runs when configured; code guards
+    then force needs_review when evidence is missing, so no evidence or quote is invented.
+    When evidence is still short, the model may ask for one external search; the graph runs it
+    and calls this node again with the result.
+    """
+    model = get_review_model()
+    if model is None:
+        return needs_review(MOCK_SUMMARY)
+
+    if any(code.endswith("_FAILED") for code in state["rag_errors"]):
+        # A broken search service is not "no evidence"; do not spend a model call guessing.
+        return needs_review("검색 서비스 오류로 근거를 확인하지 못해 사람 검토가 필요합니다.")
+
+    catalog = build_catalog(state)
+    judgment = call_model(model, SYSTEM_PROMPT, build_user_prompt(state, catalog))
+    if judgment is None:
+        return needs_review("모델 판단을 얻지 못해 사람 검토가 필요합니다.")
+
+    result = note_oversized(resolve(judgment, state, catalog), state)
+    query = external_query(judgment, state, result)
+    if query:
+        result["external_search_query"] = query
+    return result

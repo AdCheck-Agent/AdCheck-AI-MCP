@@ -1,3 +1,4 @@
+from contextlib import AsyncExitStack
 from datetime import datetime
 from typing import Literal, Protocol
 
@@ -46,4 +47,38 @@ class BusinessMCPClient:
         return RecentIssueResult.model_validate(response.json())
 
 
-# TODO(AI 2): replace HTTP adapter with verified MCP transport when servers are migrated.
+class BusinessMCPTransportClient:
+    """MCP (Streamable HTTP) client for the Business server's search_recent_issue Tool.
+
+    A failed search still carries a typed result in structuredContent (isError is true), so
+    the status is preserved instead of being turned into an empty search. Anything that
+    cannot be read as a result becomes ValueError, which the search node reports as `error`.
+    """
+
+    def __init__(
+        self, url: str, timeout: float = 5, http_client: httpx.AsyncClient | None = None
+    ) -> None:
+        self.url, self.timeout, self.http_client = url, timeout, http_client
+
+    async def search_recent_issue(self, query: str) -> RecentIssueResult:
+        from mcp import ClientSession
+        from mcp.client.streamable_http import streamable_http_client
+
+        try:
+            async with AsyncExitStack() as stack:
+                http = self.http_client or await stack.enter_async_context(
+                    httpx.AsyncClient(timeout=self.timeout)
+                )
+                read, write, _ = await stack.enter_async_context(
+                    streamable_http_client(self.url, http_client=http)
+                )
+                session = await stack.enter_async_context(ClientSession(read, write))
+                await session.initialize()
+                response = await session.call_tool("search_recent_issue", {"query": query})
+        except TimeoutError:
+            raise
+        except Exception as exc:
+            raise ValueError("Business MCP 호출에 실패했습니다.") from exc
+        if response.structuredContent is None:
+            raise ValueError("Business MCP가 구조화된 결과를 반환하지 않았습니다.")
+        return RecentIssueResult.model_validate(response.structuredContent)
