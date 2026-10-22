@@ -25,6 +25,7 @@ class Retriever(Protocol):
         top_k: int = 5,
         min_score: float = 0.0,
         include_synthetic: bool = False,
+        document_ids: list[str] | None = None,
     ) -> list[RetrievedEvidence]: ...
 
 
@@ -207,6 +208,7 @@ class PgVectorStore:
         top_k: int = 5,
         min_score: float = 0.0,
         include_synthetic: bool = False,
+        document_ids: list[str] | None = None,
     ) -> list[RetrievedEvidence]:
         if collection not in ("social", "corporate") or (
             collection == "corporate" and not company_id
@@ -214,12 +216,15 @@ class PgVectorStore:
             raise DocumentError("기업 검색에는 company_id가 필요합니다.")
         if collection == "social" and company_id is not None:
             raise DocumentError("사회 검색에는 company_id를 지정하지 않습니다.")
+        if document_ids is not None and (not document_ids or collection != "corporate"):
+            raise DocumentError("기업 문서 선택 검색에는 비어 있지 않은 document_ids가 필요합니다.")
         scope = _scope(company_id)
         async with self.connection() as conn:
             cur = await conn.execute(
                 "SELECT 1 FROM adcheck_rag.documents WHERE scope=%s "
-                "AND (%s OR NOT synthetic) LIMIT 1",
-                (scope, include_synthetic),
+                "AND (%s OR NOT synthetic) "
+                "AND (%s::text[] IS NULL OR document_id = ANY(%s::text[])) LIMIT 1",
+                (scope, include_synthetic, document_ids, document_ids),
             )
             if not await cur.fetchone():
                 return []
@@ -234,6 +239,7 @@ class PgVectorStore:
                 "1-(c.embedding <=> %s::vector) AS score "
                 "FROM adcheck_rag.chunks c JOIN adcheck_rag.documents d USING(scope,document_id) "
                 "WHERE d.scope=%s AND d.corpus=%s AND (%s OR NOT d.synthetic) "
+                "AND (%s::text[] IS NULL OR d.document_id = ANY(%s::text[])) "
                 "AND 1-(c.embedding <=> %s::vector)>=%s "
                 "ORDER BY c.embedding <=> %s::vector,c.document_id,c.chunk_id LIMIT %s",
                 (
@@ -241,6 +247,8 @@ class PgVectorStore:
                     scope,
                     collection,
                     include_synthetic,
+                    document_ids,
+                    document_ids,
                     str(vector),
                     min_score,
                     str(vector),

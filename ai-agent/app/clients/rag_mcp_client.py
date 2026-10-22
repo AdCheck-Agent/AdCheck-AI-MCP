@@ -1,4 +1,4 @@
-from typing import Protocol
+from typing import Literal, Protocol
 
 import httpx
 from pydantic import BaseModel, Field
@@ -24,9 +24,10 @@ class RetrievalEvidence(Evidence):
 
 class RetrievalResult(BaseModel):
     evidence: list[RetrievalEvidence] = Field(default_factory=list)
+    related_criteria: list[str] = Field(default_factory=list)
     mock: bool
     message: str
-    status: str = "empty"
+    status: Literal["ok", "empty", "error"] = "empty"
 
 
 class RagTools(Protocol):

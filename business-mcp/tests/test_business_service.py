@@ -17,6 +17,7 @@ def test_business_health_and_tool() -> None:
         assert response.json()["mock"] is False
         assert response.json()["status"] == "unavailable"
         assert response.json()["results"] == []
+        assert response.json()["related_criteria"] == []
 
 
 async def test_agent_business_adapter() -> None:
@@ -25,6 +26,7 @@ async def test_agent_business_adapter() -> None:
     ) as http:
         result = await BusinessMCPClient(http).search_recent_issue("최근 이슈")
     assert result.status == "unavailable" and result.results == []
+    assert result.related_criteria == []
 
 
 @pytest.mark.parametrize("query", ["", "  ", "가" * 401])

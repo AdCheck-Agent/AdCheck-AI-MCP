@@ -4,9 +4,9 @@ from uuid import uuid4
 from pydantic import BaseModel
 
 from app.clients.business_mcp_client import RecentIssue, RecentIssueResult
+from app.clients.rag_mcp_client import RetrievalEvidence, RetrievalResult
 from app.schemas.review import (
     Category,
-    Evidence,
     Finding,
     ReviewContext,
     ReviewRequest,
@@ -26,8 +26,10 @@ class ReviewState(TypedDict):
     source_text: str
     context: ReviewContext
     rule_hits: list[RuleHit]
-    social_context_evidence: list[Evidence]
-    corporate_value_evidence: list[Evidence]
+    social_context_evidence: list[RetrievalEvidence]
+    corporate_value_evidence: list[RetrievalEvidence]
+    social_context_result: RetrievalResult | None
+    corporate_value_result: RetrievalResult | None
     rag_errors: list[str]
     external_evidence: list[RecentIssue]
     external_search_query: str | None
@@ -48,6 +50,8 @@ def initial_state(request: ReviewRequest) -> ReviewState:
         rule_hits=[],
         social_context_evidence=[],
         corporate_value_evidence=[],
+        social_context_result=None,
+        corporate_value_result=None,
         rag_errors=[],
         external_evidence=[],
         external_search_query=None,

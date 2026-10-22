@@ -1,5 +1,5 @@
 from datetime import date
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, field_validator
 
@@ -16,6 +16,10 @@ class SearchQuery(BaseModel):
 class CorporateQuery(SearchQuery):
     company_id: str = Field(min_length=1, max_length=100)
     include_synthetic: bool = False
+    document_ids: (
+        list[Annotated[str, Field(min_length=1, max_length=150, pattern=r"^[A-Za-z0-9_.:-]+$")]]
+        | None
+    ) = Field(default=None, min_length=1, max_length=100)
 
 
 class RetrievedEvidence(BaseModel):
@@ -41,6 +45,7 @@ class RetrievedEvidence(BaseModel):
 
 class SearchResult(BaseModel):
     evidence: list[RetrievedEvidence] = Field(default_factory=list)
+    related_criteria: list[str] = Field(default_factory=list)
     mock: bool = False
     status: Literal["ok", "empty"] = "empty"
     message: str = ""
