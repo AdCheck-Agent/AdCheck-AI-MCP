@@ -1,18 +1,29 @@
-from pydantic import BaseModel, ConfigDict, Field
+from datetime import datetime
+from typing import Literal
+
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+
+SearchStatus = Literal["ok", "empty", "timeout", "unavailable", "error"]
 
 
 class SearchQuery(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True, extra="forbid")
-    query: str = Field(min_length=1, max_length=2000)
+    query: str = Field(min_length=1, max_length=400)
 
 
 class RecentIssue(BaseModel):
     title: str
-    url: str
+    url: HttpUrl
     snippet: str
+    source: str
+    score: float | None = None
+    published_at: datetime | None = None
+    retrieved_at: datetime
+    content_check: Literal["not_checked"] = "not_checked"
 
 
 class SearchResult(BaseModel):
+    status: SearchStatus
     results: list[RecentIssue] = Field(default_factory=list)
-    mock: bool = True
-    message: str = "[MOCK] 외부검색은 보류된 기능입니다. 실제 검색을 수행하지 않았습니다."
+    mock: bool = False
+    message: str
