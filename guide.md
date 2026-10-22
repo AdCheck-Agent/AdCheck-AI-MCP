@@ -21,7 +21,7 @@ RAG 최신 구현·CSV/XLSX 업로드 계약은 [RAG 가이드](rag-mcp/README.m
 | LLM 판정 | 근거 부족·불확실을 반환하는 mock | 문맥 판단, 근거 충분성 판정, findings 생성 |
 | 대안 문구 | 수정 분기와 TODO | 실제 수정 문구 생성 |
 | 출력 검증 | Pydantic schema 검증 | 근거 출처, 인용 범위, 판정 일관성 검증 |
-| MCP | RAG 실제 MCP 서버·client, Business HTTP placeholder | Agent RAG 검색 설정·실제 기업 자료 연동 확인 |
+| MCP | RAG 실제 MCP 서버·client, Business 별도 구현 | Agent RAG 검색 설정·실제 기업 자료 연동 확인 |
 | 외부검색 | HTTP placeholder와 빈 결과 | MVP 이후 범위 확정 시 구현 |
 | 실행 환경 | Python 3.12, venv, pip, requirements | 기능 추가에 따른 의존성·설정 갱신 |
 | Docker | 서비스별 Dockerfile, Compose, pgvector 볼륨 | 실제 연동 후 환경변수·의존성 조정 |
@@ -68,7 +68,7 @@ Spring Boot Backend (별도 저장소)
                     └─ 출력 검증
 ```
 
-**Compose의 Agent는 실제 RAG MCP를 호출합니다.** 로컬은 RAG_RETRIEVAL_ENABLED 설정으로 선택합니다. Business 연결은 후속 작업입니다.
+**Compose의 Agent는 실제 RAG MCP를 호출합니다.** 로컬은 RAG_RETRIEVAL_ENABLED 설정으로 선택합니다. Business 호출은 외부검색 분기 조건에 따릅니다.
 Spring Boot, Frontend, 금기어 RDB는 현재 Compose에 포함하지 않습니다.
 
 | 경로 | 역할 |
@@ -134,7 +134,7 @@ Spring Boot, Frontend, 금기어 RDB는 현재 Compose에 포함하지 않습니
 
 RAG-MCP는 SDK v1.30.0의 실제 MCP `/mcp`와 REST 검색을 제공합니다.
 기업 문서 업로드 API·컬럼·예시는 [RAG 가이드](rag-mcp/README.md)에 정리했습니다.
-Business 외부검색은 이 커밋 범위에서 제외합니다.
+Business 외부검색의 현재 상태는 별도 Business 가이드를 참조하세요.
 
 실제 검색으로 전환할 때 다음도 변경해야 합니다.
 

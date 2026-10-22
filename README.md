@@ -13,11 +13,12 @@ Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 �
 |---|---:|---|
 | ai-agent | 8000 | 입력 검증, 금기어 필터, LangGraph, 응답 검증 |
 | rag-mcp | 8001 | pgvector 검색, CSV/XLSX 기업 문서 처리, 실제 MCP |
-| business-mcp | 8002 | 외부검색 HTTP placeholder; 실제 검색은 보류 |
+| business-mcp | 8002 | Tavily 외부검색 HTTP Tool, 상세는 별도 가이드 |
 | pgvector | 5433 | PostgreSQL 18 / vector(384), 기업별 문서·chunk 저장 |
 
 `rag-mcp`는 실제 MCP `/mcp`와 검색·문서 관리 REST API를 제공합니다.
 구현·실행·업로드 컬럼은 [RAG 가이드](rag-mcp/README.md)를 확인하세요.
+Business 외부검색의 별도 구현 내용은 [Business 가이드](business-mcp/README.md)를 확인하세요.
 Compose에서는 Agent의 실제 MCP 검색이 켜집니다. 로컬은 RAG_RETRIEVAL_ENABLED=true로 활성화합니다.
 
 ## 디렉터리 구조
@@ -210,7 +211,7 @@ Mock / 미구현:
 - RAG 적재·검색과 Agent 노드 연결 구현됨. 로컬 기본 설정은 오프라인이며 Compose는 실제 검색 활성화
 - LLM 판단: API 호출 없이 근거 부족과 불확실을 설정
 - 대안 생성: 분기와 TODO만 존재하며 실제 suggestion 생성 없음
-- RAG MCP 구현 완료. Business 외부검색은 이 커밋 범위에서 제외
+- RAG의 MCP는 구현됨. Business 외부검색은 별도 Business 가이드 참조
 - Output Validator: 현재는 schema만 검사; 근거 출처 / 인용 검증은 후속 작업
 
 규칙 hit를 실제 근거처럼 꾸미지 않아 현재 API의 `findings`는 비어 있습니다.
