@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel
 
+from app.clients.business_mcp_client import RecentIssue, RecentIssueResult
 from app.schemas.review import (
     Category,
     Evidence,
@@ -27,7 +28,10 @@ class ReviewState(TypedDict):
     rule_hits: list[RuleHit]
     social_context_evidence: list[Evidence]
     corporate_value_evidence: list[Evidence]
-    external_evidence: list[Evidence]
+    external_evidence: list[RecentIssue]
+    external_search_query: str | None
+    external_search_attempted: bool
+    external_search_result: RecentIssueResult | None
     evidence_sufficient: bool
     risk: Literal["yes", "no", "uncertain"]
     status: NotRequired[Status]
@@ -44,6 +48,9 @@ def initial_state(request: ReviewRequest) -> ReviewState:
         social_context_evidence=[],
         corporate_value_evidence=[],
         external_evidence=[],
+        external_search_query=None,
+        external_search_attempted=False,
+        external_search_result=None,
         evidence_sufficient=False,
         risk="uncertain",
         findings=[],

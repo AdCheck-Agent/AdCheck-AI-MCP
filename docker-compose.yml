@@ -43,6 +43,10 @@ services:
       dockerfile: business-mcp/Dockerfile
     ports:
       - "${BUSINESS_MCP_PORT:-8002}:8002"
+    environment:
+      TAVILY_API_KEY: ${TAVILY_API_KEY:-}
+      TAVILY_TIMEOUT_SECONDS: ${TAVILY_TIMEOUT_SECONDS:-5}
+      TAVILY_MAX_RESULTS: ${TAVILY_MAX_RESULTS:-3}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=3)"]
       interval: 10s
