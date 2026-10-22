@@ -278,8 +278,8 @@ DB 통합 테스트는 `RAG_TEST_DATABASE_URL`에 `_test`로 끝나는 전용 DB
 
 최근 확인 결과 (2026-10-23):
 
-- pytest 118개 통과 (전용 test DB 포함. DB 없이 실행하면 110개 통과·8개 건너뜀), Ruff lint 통과
-- 실제 임베딩 검색 평가: hit@5 0.90, 기업 격리 위반 0건
+- pytest 127개 통과 (전용 test DB 포함. DB 없이 실행하면 119개 통과·8개 건너뜀), Ruff lint 통과
+- 실제 임베딩 검색 평가: 사회 hit@1 0.80·MRR 0.87, 전체 hit@5 0.90, 기업 격리 위반 0건
 - Docker Compose `up --build`: 4개 서비스 healthy, 사회 문서 적재·기업 문서 업로드, Agent 검수 요청 → RAG MCP → pgvector 확인
 
 ## 다음 작업 / 담당 제안
@@ -295,8 +295,8 @@ DB 통합 테스트는 `RAG_TEST_DATABASE_URL`에 `_test`로 끝나는 전용 DB
 **AI 2 — 데이터 / 검색 / MCP**
 
 - 완료: 기준 데이터·출처·자동 version, pgvector 적재·검색, CSV/XLSX 업로드, RAG MCP 서버·client,
-  Agent 검색 노드 연결, 첨부 문서 전체 반환, 실제 임베딩 검색 평가, Tavily 외부검색 MCP·HTTP
-- 남은 일: 검색 품질 개선, BE의 `document_ids` 전달 연결
+  Agent 검색 노드 연결, 첨부 문서 전체 반환, 실제 임베딩 검색 평가·허브 조각 개선, Tavily 외부검색 MCP·HTTP
+- 남은 일: BE의 `document_ids` 전달 연결, 실제 광고 문구 형태의 평가 문항 확충
 - 파트 1 연결: 외부검색 검색어 생성·호출 정책, Business의 Agent MCP client 전환
 
 참고한 LangGraph API: [StateGraph 공식 문서](https://reference.langchain.com/python/langgraph/graph/state/StateGraph).
