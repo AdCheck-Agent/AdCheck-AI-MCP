@@ -47,8 +47,9 @@ RAG 최신 구현·CSV/XLSX 업로드 계약은 [RAG 가이드](rag-mcp/README.m
 - pytest 118개 통과 (전용 pgvector test DB 포함. DB 없이 실행하면 110개 통과·8개 건너뜀), Ruff lint 통과
 - 실제 임베딩으로 사회 문서 적재, 기업 문서 업로드, 첨부 문서 전체 반환, version 자동 부여 확인
 - 검색 품질 평가: hit@5 0.90, 기업 격리 위반 0건 ([검색 평가](docs/2026-10-22-rag-retrieval-eval.md))
-
-Docker Compose 전체 build / up과 컨테이너 간 health 확인은 초기 골격 단계에서 했고, 이후 변경 뒤에는 다시 검증하지 않았습니다.
+- Docker Compose `up --build`: 4개 서비스 healthy, Agent·RAG·Business health와 RAG `/ready`, pgvector `pg_isready` 확인
+- Compose 안에서 사회 문서 12개 적재, 기업 문서 6개 업로드(CSV·XLSX), 같은 파일 재업로드 시 version 유지 확인
+- Agent에 `document_ids`를 포함한 검수 요청 → RAG MCP Tool 2회 호출(사회·기업) → pgvector 검색, 실패 기록 없이 HTTP 200
 LLM 판정이 mock이므로 검수 결과의 정확도는 아직 검증 대상이 아닙니다.
 
 ## 2. 전체 구조와 파일 찾기
