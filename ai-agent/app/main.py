@@ -14,21 +14,27 @@ from app.graph.graph import build_graph
 
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
-    configure_logging(get_settings().log_level)
+    settings = get_settings()
+    configure_logging(settings.log_level)
+
+    rag_tools = (
+        RagMCPTransportClient(
+            str(settings.rag_mcp_url).rstrip("/") + "/mcp",
+            settings.http_timeout_seconds,
+        )
+        if settings.rag_retrieval_enabled
+        else None
+    )
+
     async with httpx.AsyncClient(
-        base_url=str(get_settings().business_mcp_url),
+        base_url=str(settings.business_mcp_url),
         timeout=5,
         transport=httpx.AsyncHTTPTransport(retries=0),
     ) as http:
-        settings = get_settings()
-        rag_tools = (
-            RagMCPTransportClient(
-                str(settings.rag_mcp_url).rstrip("/") + "/mcp", settings.http_timeout_seconds
-            )
-            if settings.rag_retrieval_enabled
-            else None
+        application.state.review_graph = build_graph(
+            business_tools=BusinessMCPClient(http),
+            rag_tools=rag_tools,
         )
-        application.state.review_graph = build_graph(BusinessMCPClient(http), rag_tools)
         yield
 
 

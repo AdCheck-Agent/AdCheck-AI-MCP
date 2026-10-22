@@ -28,6 +28,7 @@ def route_result(
 ) -> Literal["revise", "pass", "needs_review", "external_search"]:
     if any(code.endswith("_FAILED") for code in state["rag_errors"]):
         return "needs_review"
+
     query = state["external_search_query"]
     if (
         not state["evidence_sufficient"]
@@ -36,15 +37,19 @@ def route_result(
         and 0 < len(query.strip()) <= 400
     ):
         return "external_search"
+
     if not state["evidence_sufficient"] or state["risk"] == "uncertain":
         return "needs_review"
+
     return "revise" if state["risk"] == "yes" else "pass"
 
 
 def build_graph(
-    business_tools: BusinessTools | None = None, rag_tools: RagTools | None = None
+    business_tools: BusinessTools | None = None,
+    rag_tools: RagTools | None = None,
 ) -> CompiledStateGraph:
     graph = StateGraph(ReviewState)
+
     graph.add_node("rule_filter", rule_filter)
     graph.add_node(
         "retrieve_social_context",
@@ -59,15 +64,20 @@ def build_graph(
         else retrieve_corporate_value,
     )
     graph.add_node("review_llm", review_llm)
-    graph.add_node("external_search", partial(retrieve_external_evidence, tools=business_tools))
+    graph.add_node(
+        "external_search",
+        partial(retrieve_external_evidence, tools=business_tools),
+    )
     graph.add_node("generate_alternative", generate_alternative)
     graph.add_node("mark_pass", mark_pass)
     graph.add_node("mark_needs_review", mark_needs_review)
     graph.add_node("validate_result", validate_result)
+
     graph.add_edge(START, "rule_filter")
     graph.add_edge("rule_filter", "retrieve_social_context")
     graph.add_edge("retrieve_social_context", "retrieve_corporate_value")
     graph.add_edge("retrieve_corporate_value", "review_llm")
+
     graph.add_conditional_edges(
         "review_llm",
         route_result,
@@ -78,9 +88,13 @@ def build_graph(
             "external_search": "external_search",
         },
     )
+
     # Search outcome is input to the final judgment, never a verdict by itself.
     graph.add_edge("external_search", "review_llm")
+
     for node in ("generate_alternative", "mark_pass", "mark_needs_review"):
         graph.add_edge(node, "validate_result")
+
     graph.add_edge("validate_result", END)
+
     return graph.compile()
