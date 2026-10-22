@@ -50,9 +50,11 @@ CSV는 UTF-8 또는 UTF-8 BOM, XLSX는 `policies` 시트 하나를 사용합니�
 ## 2. 행 단위 chunking과 검색
 
 - 다른 행을 합치지 않고 한 정책 행의 content를 기본 chunk로 사용합니다.
-- 긴 행은 모델 tokenizer 기준 기본 96토큰, 12토큰 겹침으로 분할합니다.
+- 긴 행은 모델 tokenizer 기준 최대 96토큰, 최소 12토큰 겹침으로 **같은 크기로 고르게** 분할합니다.
+  고정 간격으로 자르면 짧은 끝 조각(예: 출처 이름만 남은 줄)이 생겨 무관한 질문에도 상위에 올랐습니다.
 - 모든 조각에 row_id·기업·문서·유형·section·버전·출처와 파일 내 순서를 보존합니다.
 - 사회 문서는 heading별로 나누어 기관 사실·보도 사례·프로젝트 기준을 유지합니다.
+  본문 markdown 링크는 표시 문구만 남기고 주소는 빼고 임베딩합니다. 주소는 근거의 `source_urls`에 있습니다.
 - 한국어를 지원하는 FastEmbed `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`를 사용합니다.
 - 로컬 CPU 추론이며 API key는 필요 없습니다. 최초 처리 시 모델 파일을 다운로드합니다.
 - pgvector `vector(384)`에 저장하고 `<=>` cosine distance로 정렬합니다. score는 `1 - distance`이며 사실 확률이 아닙니다.

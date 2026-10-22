@@ -80,7 +80,7 @@ chunk 생성 시 추가·보존할 필드:
 | `ordinal` | 기업 문서의 파일 내 조각 순서. 첨부 문서 전체 반환 시 정렬 기준 |
 | `document` | 문서의 title |
 | `section` | heading 경로 |
-| `snippet` | 이 저장소 문서에 실제로 존재하는 본문 구간 |
+| `snippet` | 이 저장소 문서에 실제로 존재하는 본문 구간. 사회 문서의 markdown 링크는 표시 문구만 남김 |
 | `rule_id`, `record_type` | 문서 metadata 유지 |
 | `version` | 적재 시 RAG가 부여. 처음 `v1`, 내용이 바뀌면 자동 증가 |
 | `company_id` | 기업 문서는 필수 검색 필터 |

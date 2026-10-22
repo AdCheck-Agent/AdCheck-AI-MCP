@@ -7,6 +7,22 @@ from rag_mcp.config import Settings
 from rag_mcp.errors import EmbeddingUnavailable
 
 
+def token_windows(count: int, limit: int, overlap: int) -> list[tuple[int, int]]:
+    """Evenly sized windows of at most `limit` tokens, each overlapping by at least `overlap`.
+
+    Fixed-stride splitting left a short tail (often just a citation line) that ranked
+    near the top for unrelated queries; spreading the tokens evenly avoids that.
+    """
+    if count <= limit:
+        return [(0, count)] if count else []
+    pieces = math.ceil((count - overlap) / (limit - overlap))
+    size = math.ceil((count + (pieces - 1) * overlap) / pieces)
+    return [
+        ((k * (count - size)) // (pieces - 1), (k * (count - size)) // (pieces - 1) + size)
+        for k in range(pieces)
+    ]
+
+
 class Embeddings(Protocol):
     profile: str
 
@@ -59,17 +75,11 @@ class LocalEmbeddings:
         with self._lock:
             self._load()
             offsets = self._tokenizer.encode(text, add_special_tokens=False).offsets
-        limit = self.settings.rag_chunk_tokens
-        step = limit - self.settings.rag_chunk_overlap
-        result = []
-        for i in range(0, len(offsets), step):
-            end = min(i + limit, len(offsets))
-            part = text[offsets[i][0] : offsets[end - 1][1]].strip()
-            if part:
-                result.append(part)
-            if end == len(offsets):
-                break
-        return result
+        windows = token_windows(
+            len(offsets), self.settings.rag_chunk_tokens, self.settings.rag_chunk_overlap
+        )
+        parts = (text[offsets[start][0] : offsets[end - 1][1]].strip() for start, end in windows)
+        return [part for part in parts if part]
 
     async def split(self, text: str) -> list[str]:
         try:

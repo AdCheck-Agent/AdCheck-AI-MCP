@@ -16,7 +16,7 @@ RAG 최신 구현·CSV/XLSX 업로드 계약은 [RAG 가이드](rag-mcp/README.m
 | AI Agent | FastAPI, health, review API, 입력 검증 | 실제 모델 호출과 실패 처리 |
 | LangGraph | 노드 분리, compile, 조건 분기, 외부검색 후 재판정, END 도달 | 각 노드의 실제 기능 연결 |
 | 금기어 | JSON 로딩, 정규화, 활성 규칙 매칭 | RDB 또는 규칙 조회 API 연결 |
-| 사회·역사 검색 | 저장소 문서 분할·임베딩·pgvector 검색, Agent 연결, 실제 임베딩 평가 | 검색 품질 개선 |
+| 사회·역사 검색 | 저장소 문서 분할·임베딩·pgvector 검색, Agent 연결, 실제 임베딩 평가·허브 조각 개선 | 평가 문항 확충 |
 | 기업 가치 검색 | CSV/XLSX 업로드·교체·삭제, 기업 격리, 첨부 문서 전체 반환 | BE의 `document_ids` 전달 연결 |
 | LLM 판정 | 근거 부족·불확실을 반환하는 mock | 문맥 판단, 근거 충분성 판정, findings 생성 |
 | 대안 문구 | 수정 분기와 TODO | 실제 수정 문구 생성 |
@@ -44,9 +44,9 @@ RAG 최신 구현·CSV/XLSX 업로드 계약은 [RAG 가이드](rag-mcp/README.m
 
 최근 검증 결과 (2026-10-23):
 
-- pytest 118개 통과 (전용 pgvector test DB 포함. DB 없이 실행하면 110개 통과·8개 건너뜀), Ruff lint 통과
+- pytest 127개 통과 (전용 pgvector test DB 포함. DB 없이 실행하면 119개 통과·8개 건너뜀), Ruff lint 통과
 - 실제 임베딩으로 사회 문서 적재, 기업 문서 업로드, 첨부 문서 전체 반환, version 자동 부여 확인
-- 검색 품질 평가: hit@5 0.90, 기업 격리 위반 0건 ([검색 평가](docs/2026-10-22-rag-retrieval-eval.md))
+- 검색 품질 평가: 사회 hit@1 0.80·MRR 0.87, 전체 hit@5 0.90, 기업 격리 위반 0건 ([검색 평가](docs/2026-10-22-rag-retrieval-eval.md))
 - Docker Compose `up --build`: 4개 서비스 healthy, Agent·RAG·Business health와 RAG `/ready`, pgvector `pg_isready` 확인
 - Compose 안에서 사회 문서 12개 적재, 기업 문서 6개 업로드(CSV·XLSX), 같은 파일 재업로드 시 version 유지 확인
 - Agent에 `document_ids`를 포함한 검수 요청 → RAG MCP Tool 2회 호출(사회·기업) → pgvector 검색, 실패 기록 없이 HTTP 200

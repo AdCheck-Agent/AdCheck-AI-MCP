@@ -16,6 +16,7 @@ from rag_mcp.retrieval.embeddings import Embeddings
 from rag_mcp.schemas import Chunk, DocumentRecord, PolicyRow
 
 COLUMNS = list(PolicyRow.model_fields)
+MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)\s]+\)")
 
 
 def _table(filename: str, data: bytes, settings: Settings) -> list[list]:
@@ -163,7 +164,9 @@ async def social_documents(data_dir: Path, embeddings: Embeddings) -> list[Docum
                 continue
             if not part.strip():
                 continue
-            for content in await embeddings.split(part.strip()):
+            # Link targets are kept in source_urls (or point to other repo files); embedding
+            # them produced URL-only chunks that ranked near the top for unrelated queries.
+            for content in await embeddings.split(MARKDOWN_LINK.sub(r"\1", part).strip()):
                 chunks.append(
                     Chunk(chunk_id=f"section:{len(chunks)}", section=section, content=content)
                 )
