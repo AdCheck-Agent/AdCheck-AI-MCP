@@ -1,10 +1,10 @@
-# RAG 문서 데이터 v1
+# RAG 문서 데이터
 
 작성·출처 확인일: 2026-10-22 (Asia/Seoul).
 
 사회·역사 자료는 확인 가능한 기관 자료와 기사에 근거해 작성했습니다.
 다만 아래 검수 규칙은 **프로젝트가 작성한 판단 보조 기준**이며, 정부·언론·기관의 공식 광고 심의 규칙이나 법률 판단이 아닙니다.
-기업 문서는 요청한 두 기업명을 사용한 **개발용 합성 정책**입니다. 실제 기업의 공표 정책·인증·이행 실적으로 인용하면 안 됩니다.
+기업 문서는 태건뷰티·서준로스터스 두 기업의 기업가치·윤리경영·지속가능경영 문서입니다.
 
 ## 구성
 
@@ -12,12 +12,12 @@
 |---|---|---|
 | `social/criteria/` | 출처 기반 프로젝트 검수 기준 6개 | manifest에 등록한 문서만 |
 | `social/cases/` | 확인한 보도·기관 판단 사례 6개 | manifest에 등록한 문서만 |
-| `corporate/taegeon_beauty/` | 태건뷰티 CSV/XLSX 합성 문서 3종 | 명시적 업로드 후 include_synthetic=true 검색 |
-| `corporate/seojun_roasters/` | 서준로스터스 CSV/XLSX 합성 문서 3종 | 명시적 업로드 후 include_synthetic=true 검색 |
+| `corporate/taegeon_beauty/` | 태건뷰티 CSV/XLSX 문서 3종 | 업로드 후 검색·첨부 반환 |
+| `corporate/seojun_roasters/` | 서준로스터스 CSV/XLSX 문서 3종 | 업로드 후 검색·첨부 반환 |
 | `research/` | 미확인 사례·정정 및 조사 기록 | 제외 |
 | `sources.json` | 출처 ID·URL·발행일·확인 범위 | 본문으로 적재하지 않음 |
-| `manifest.json` | 적재 대상과 실제/합성 성격의 명시적 목록 | 적재 작업의 입력 |
-| `../tests/fixtures/retrieval_cases.json` | 합성 검색 평가 문항 | 제외 |
+| `manifest.json` | 적재 대상과 문서 성격의 명시적 목록 | 적재 작업의 입력 |
+| `../tests/fixtures/retrieval_cases.json` | 검색 평가 문항 | 제외 |
 
 pgvector 적재·검색과 CSV/XLSX 업로드를 구현했습니다. 실행·컬럼·API 계약은 [RAG 가이드](../README.md)를 확인하세요.
 사회 문서는 CLI로 적재하며 기업 샘플은 자동 적재하지 않습니다. Agent의 검색 노드 연결은 별도 작업입니다.
@@ -26,7 +26,7 @@ pgvector 적재·검색과 CSV/XLSX 업로드를 구현했습니다. 실행·컬
 
 1. `project_guideline`: 외부 사실을 토대로 프로젝트가 작성한 검수 원칙. 원 출처의 명령문·법조항으로 표현하지 않습니다.
 2. `reported_case`: 기사에서 확인한 광고·논란·대응의 짧은 요약. 광고 원본을 직접 확인한 것과 구분합니다.
-3. `synthetic_company_policy`: 가상 정책. 모든 응답에 합성 근거임을 보존합니다.
+3. `uploaded_company_document`: 기업이 업로드한 기업가치·윤리경영·지속가능경영 문서.
 
 `sources_checked`는 링크 자료가 기재 내용을 뒷받침함을 조사한 상태입니다.
 기업의 의도, 위법성, 매출 영향, 모든 후속 조치까지 독립적으로 입증했다는 의미가 아닙니다.
@@ -36,16 +36,16 @@ pgvector 적재·검색과 CSV/XLSX 업로드를 구현했습니다. 실행·컬
 
 | company_id | 표시 이름 | 성격 |
 |---|---|---|
-| `taegeon_beauty` | 태건뷰티 | 뷰티 기업을 가정한 합성 정책 |
-| `seojun_roasters` | 서준로스터스 | 카페를 가정한 합성 정책 |
+| `taegeon_beauty` | 태건뷰티 | 뷰티 기업 |
+| `seojun_roasters` | 서준로스터스 | 카페 |
 
 두 ID는 샘플용이며 Backend 기업 ID와 합의한 후 매핑합니다.
 
-### 기업가치 문서 구성 (v2)
+### 기업가치 문서 구성
 
 기업 문서의 목적은 광고가 **그 기업이 추구하는 방향과 어긋나 소비자를 당황하게 하는지** 검토하는 것입니다.
 그래서 `corporate_values`에는 금지 규칙(001~003) 외에 지향 내용(004~008)을 둡니다.
-윤리경영·지속가능경영보고서는 v1(각 3행) 그대로입니다.
+윤리경영·지속가능경영보고서는 각 3행입니다.
 
 | row | 항목 | 태건뷰티: 있는 그대로의 피부를 돌보는 브랜드 | 서준로스터스: 누구나 들르는 동네 커피집 |
 |---|---|---|---|
@@ -62,14 +62,14 @@ RAG 검색 API는 기업 ID를 필터로 사용합니다. Agent는 RAG_RETRIEVAL
 
 ## metadata와 chunking 계약
 
-사회 문서는 YAML front matter와 heading을 해석해 적재합니다. 기업 문서는 CSV/XLSX 11개 컬럼을 사용합니다.
-기업의 새 문서 유형은 기업가치·지속가능경영보고서·윤리경영 정책이며, 이전 Markdown은 research/legacy_corporate에 보관했습니다.
+사회 문서는 YAML front matter와 heading을 해석해 적재합니다. 기업 문서는 CSV/XLSX 9개 컬럼을 사용합니다.
+사회·기업 문서 모두 최신본만 두며, `version`은 파일에 적지 않고 RAG가 적재할 때 자동으로 매깁니다.
+기업 문서 유형은 기업가치·지속가능경영보고서·윤리경영 정책입니다.
 
-- `document_id`, `rule_id`, `title`, `record_type`, `category`, `version`: 필수 식별 정보
+- `document_id`, `rule_id`, `title`, `record_type`, `category`: 필수 식별 정보
 - `company_id`: 기업 문서에만 필수. 사회 기준은 `null`
-- `synthetic`: 합성 여부. 실제 근거와 혼합해 표시하지 않음
-- `source_ids`: `sources.json`의 출처 ID. 합성 정책은 빈 목록
-- `verification_status`, `verified_at`: 확인 수준과 확인일. 합성 정책은 사실 확인 대상이 아님
+- `source_ids`: `sources.json`의 출처 ID. 기업 문서는 빈 목록
+- `verification_status`, `verified_at`: 확인 수준과 확인일. 기업 문서는 업로드 내용을 별도 검증하지 않음
 - `retrieval_enabled`: 후보 적재 여부. 실제 허용 목록은 `manifest.json`
 
 chunk 생성 시 추가·보존할 필드:
@@ -77,10 +77,12 @@ chunk 생성 시 추가·보존할 필드:
 | 필드 | 생성/보존 기준 |
 |---|---|
 | `chunk_id` | 사회 문서는 section 번호, 기업 문서는 row_id + 분할 번호. 기업·문서 키와 함께 식별 |
+| `ordinal` | 기업 문서의 파일 내 조각 순서. 첨부 문서 전체 반환 시 정렬 기준 |
 | `document` | 문서의 title |
 | `section` | heading 경로 |
 | `snippet` | 이 저장소 문서에 실제로 존재하는 본문 구간 |
-| `rule_id`, `version`, `record_type`, `synthetic` | 문서 metadata 유지 |
+| `rule_id`, `record_type` | 문서 metadata 유지 |
+| `version` | 적재 시 RAG가 부여. 처음 `v1`, 내용이 바뀌면 자동 증가 |
 | `company_id` | 기업 문서는 필수 검색 필터 |
 | `source_ids`, `source_urls` | 출처 레지스트리와 연결해 보존 |
 | `score` | 검색 시 생성. 원문 metadata가 아니며 사실 확률도 아님 |
@@ -94,8 +96,7 @@ chunk 생성 시 추가·보존할 필드:
 
 - manifest에 명시한 문서만 적재하고 data 전체를 재귀적으로 수집하지 않습니다.
 - research, 평가 문항, README, 출처 레지스트리는 검색 대상에서 제외합니다.
-- 합성 기업 정책은 실제 운영 근거와 분리합니다. 실제 기업 정책으로 교체하기 전 demo임을 표시합니다.
-- 출처 변경·정정·삭제 시 해당 문서와 chunk version을 갱신합니다.
+- 출처 변경·정정 시 해당 문서를 고쳐 다시 적재합니다. version은 자동으로 올라가며 이전 판 파일은 남기지 않습니다.
 - 과거 광고 사례는 현재도 논란이 진행 중이라는 근거로 사용하지 않습니다.
 - 사진·영상 맥락이 핵심인 사례는 text-only 검수의 한계를 함께 전달합니다.
 - 이 자료는 역사·인권을 모두 망라하지 않습니다. 기준 밖 입력은 근거 충분으로 간주하지 않습니다.

@@ -52,7 +52,7 @@ Compose에서는 Agent의 실제 MCP 검색이 켜집니다. 로컬은 RAG_RETRI
 │   │   ├── schemas.py
 │   │   ├── tools/{search_social_context,search_corporate_value}.py
 │   │   └── retrieval/{vector_store,embeddings}.py
-│   ├── data/  # 사회 기준·사례, 두 기업 합성 정책, 출처·적재 목록
+│   ├── data/  # 사회 기준·사례, 두 기업 문서, 출처·적재 목록
 │   ├── tests/test_rag_service.py
 │   └── Dockerfile
 ├── business-mcp/
@@ -150,6 +150,8 @@ Backend는 AI Agent의 `POST http://localhost:8000/api/v1/reviews`를 JSON으로
 - `context.channel`: 필수, `sns`만 허용
 - `campaign_name`: 선택, 최대 100자
 - `company_id`: 선택, 제공 시 1~100자. 현재 기본 기업은 지정하지 않습니다.
+- `document_ids`: 선택, 이번 검수에 첨부해 RAG 업로드가 끝난 기업 문서 ID 1~100개.
+  주면 해당 문서 전체를 기업 근거로 사용하고, 없으면 기업 전체에서 유사도 검색합니다.
 - 입력 오류: FastAPI 기본 `422` validation response
 
 현재 응답 예시 (`trace_id`는 요청마다 새로 생성):
@@ -221,9 +223,9 @@ Mock / 미구현:
 ## 준비된 RAG 문서
 
 [데이터 안내](rag-mcp/data/README.md)에 사회·역사 검수 기준 6개, 확인한 사례 6개,
-태건뷰티·서준로스터스의 개발용 합성 정책 각 3개를 정리했습니다.
+태건뷰티·서준로스터스의 기업 문서 각 3개를 정리했습니다.
 기관 사실·보도 내용·프로젝트 검수 기준을 구분하고 출처 12개를 기록했습니다.
-미확인 사례는 적재 대상에서 제외하며, 합성 기업 정책은 demo 용도로 구분합니다.
+미확인 사례는 적재 대상에서 제외합니다.
 사회 문서 적재는 `python -m rag_mcp.cli ingest-social`로 수행합니다. 기업 샘플은 CSV/XLSX 3종이며 자동 적재하지 않습니다.
 
 ## Docker Compose
@@ -280,7 +282,7 @@ python -m ruff format --check .
 
 **AI 2 — 데이터 / 검색 / MCP**
 
-- 승인된 합성 / 공개 기준 데이터와 출처·버전 메타데이터 설계
+- 기업 문서 / 공개 기준 데이터와 출처·버전 메타데이터 설계
 - pgvector 적재·검색과 CSV/XLSX 업로드 구현 완료. 실제 기업 자료 연동과 검색 품질 평가 진행
 - 두 검색 Tool의 Agent 노드 연결 및 문서별 검색 범위 계약 확정
 - RAG MCP 서버·client 구현 완료, 운영 연결 설정 확인
