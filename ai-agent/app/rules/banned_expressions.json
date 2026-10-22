@@ -1,0 +1,20 @@
+[
+  {
+    "expression": "정상적인 사람이 아닙니다",
+    "category": "discrimination_and_hate",
+    "severity": "high",
+    "enabled": true
+  },
+  {
+    "expression": "안 사면 평생 후회",
+    "category": "fear_and_anxiety",
+    "severity": "medium",
+    "enabled": true
+  },
+  {
+    "expression": "비활성 예시",
+    "category": "social_issue",
+    "severity": "low",
+    "enabled": false
+  }
+]

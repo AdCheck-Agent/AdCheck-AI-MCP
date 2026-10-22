@@ -1,0 +1,7 @@
+# Runtime dependencies; versions verified on Python 3.12.
+fastapi==0.159.1
+uvicorn==0.54.0
+pydantic==2.14.1
+pydantic-settings==2.16.1
+langgraph==1.2.16
+httpx==0.28.1

@@ -1,0 +1,60 @@
+services:
+  ai-agent:
+    build:
+      context: .
+      dockerfile: ai-agent/Dockerfile
+    ports:
+      - "${AI_AGENT_PORT:-8000}:8000"
+    environment:
+      AI_AGENT_PORT: 8000
+      RAG_MCP_URL: http://rag-mcp:8001
+      BUSINESS_MCP_URL: http://business-mcp:8002
+      QDRANT_URL: http://qdrant:6333
+      HTTP_TIMEOUT_SECONDS: ${HTTP_TIMEOUT_SECONDS:-10}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    depends_on:
+      rag-mcp:
+        condition: service_healthy
+      business-mcp:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  rag-mcp:
+    build:
+      context: .
+      dockerfile: rag-mcp/Dockerfile
+    ports:
+      - "${RAG_MCP_PORT:-8001}:8001"
+    environment:
+      QDRANT_URL: http://qdrant:6333
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  business-mcp:
+    build:
+      context: .
+      dockerfile: business-mcp/Dockerfile
+    ports:
+      - "${BUSINESS_MCP_PORT:-8002}:8002"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+  qdrant:
+    image: qdrant/qdrant:v1.15.5
+    ports:
+      - "${QDRANT_PORT:-6333}:6333"
+    volumes:
+      - qdrant-data:/qdrant/storage
+
+volumes:
+  qdrant-data:
