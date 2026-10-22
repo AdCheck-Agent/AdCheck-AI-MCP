@@ -1,0 +1,1062 @@
+{
+  "embedding_profile": "fastembed:sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2:384",
+  "chunking": {
+    "tokens": 96,
+    "overlap": 12
+  },
+  "min_score": 0.0,
+  "fixture_version": "v1",
+  "indexed_documents": {
+    "social": 12,
+    "corporate": 6
+  },
+  "summary": {
+    "top_k": 5,
+    "retrieval": {
+      "all": {
+        "cases": 31,
+        "hit@1": 0.4839,
+        "hit@3": 0.7419,
+        "hit@5": 0.9032,
+        "mrr": 0.6392,
+        "misses": [
+          "SOC-03",
+          "TGB-04",
+          "TGB-08"
+        ]
+      },
+      "corporate_demo": {
+        "cases": 16,
+        "hit@1": 0.4375,
+        "hit@3": 0.625,
+        "hit@5": 0.875,
+        "mrr": 0.5906,
+        "misses": [
+          "TGB-04",
+          "TGB-08"
+        ]
+      },
+      "social": {
+        "cases": 15,
+        "hit@1": 0.5333,
+        "hit@3": 0.8667,
+        "hit@5": 0.9333,
+        "mrr": 0.6911,
+        "misses": [
+          "SOC-03"
+        ]
+      }
+    },
+    "isolation_violations": {},
+    "isolation_cases_returning_results": [],
+    "scores": {
+      "hit_score_min": 0.0974,
+      "hit_score_mean": 0.4743,
+      "negative_top_score_max": 0.5006,
+      "negative_top_score_mean": 0.4166,
+      "negative_cases": 4
+    },
+    "latency_ms": {
+      "p50": 16.6,
+      "p95": 20.1,
+      "max": 22.3
+    }
+  },
+  "cases": [
+    {
+      "id": "SOC-01",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "5월 18일 텀블러 판매 행사와 탱크라는 이름이 결합된 사례",
+      "expected": [
+        "CASE-HIST-001",
+        "RULE-HIST-001"
+      ],
+      "returned": [
+        "CASE-HIST-001",
+        "RULE-CONTEXT-001",
+        "RULE-HIST-001",
+        "CASE-HIST-001",
+        "RULE-DIGNITY-001"
+      ],
+      "scores": [
+        0.5844,
+        0.562,
+        0.4585,
+        0.404,
+        0.3724
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.5844,
+      "top_score": 0.5844,
+      "isolation_violations": [],
+      "latency_ms": 22.3
+    },
+    {
+      "id": "SOC-02",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "속건성 양말에 고문치사 사건을 연상시키는 문구를 쓴 사례",
+      "expected": [
+        "CASE-HIST-003"
+      ],
+      "returned": [
+        "RULE-CONTEXT-001",
+        "RULE-HIST-001",
+        "CASE-DIGNITY-001",
+        "RULE-HIST-001",
+        "CASE-HIST-003"
+      ],
+      "scores": [
+        0.4985,
+        0.492,
+        0.4371,
+        0.4097,
+        0.3655
+      ],
+      "hit_rank": 5,
+      "hit_score": 0.3655,
+      "top_score": 0.4985,
+      "isolation_violations": [],
+      "latency_ms": 17.5
+    },
+    {
+      "id": "SOC-03",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "625 수치와 침투 표현을 결합한 화장품 광고의 실제 집행 시점",
+      "expected": [
+        "CASE-HIST-002"
+      ],
+      "returned": [
+        "RULE-DIGNITY-001",
+        "CASE-DISC-001",
+        "RULE-CHILD-001",
+        "CASE-DISC-001",
+        "RULE-DISC-001"
+      ],
+      "scores": [
+        0.6126,
+        0.517,
+        0.5056,
+        0.4975,
+        0.4928
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.6126,
+      "isolation_violations": [],
+      "latency_ms": 17.4
+    },
+    {
+      "id": "SOC-04",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "고인의 합성 이미지를 지사 페이스북 홍보에 사용한 사례",
+      "expected": [
+        "CASE-DIGNITY-001"
+      ],
+      "returned": [
+        "RULE-DIGNITY-001",
+        "CASE-DIGNITY-001",
+        "CASE-DIGNITY-001",
+        "RULE-CONTEXT-001",
+        "CASE-DISC-001"
+      ],
+      "scores": [
+        0.6381,
+        0.5092,
+        0.5027,
+        0.4901,
+        0.4853
+      ],
+      "hit_rank": 2,
+      "hit_score": 0.5092,
+      "top_score": 0.6381,
+      "isolation_violations": [],
+      "latency_ms": 16.3
+    },
+    {
+      "id": "SOC-05",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "사람이 소로 변하고 몰래 촬영하는 연출의 광고 논란",
+      "expected": [
+        "CASE-DISC-001"
+      ],
+      "returned": [
+        "RULE-CONTEXT-001",
+        "RULE-HIST-001",
+        "CASE-DISC-001",
+        "CASE-DIGNITY-001",
+        "RULE-DIGNITY-001"
+      ],
+      "scores": [
+        0.4873,
+        0.4781,
+        0.4733,
+        0.436,
+        0.4295
+      ],
+      "hit_rank": 3,
+      "hit_score": 0.4733,
+      "top_score": 0.4873,
+      "isolation_violations": [],
+      "latency_ms": 17.4
+    },
+    {
+      "id": "SOC-06",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "아버지는 육아를 못한다는 고정관념을 유머로 사용한 해외 광고 판단",
+      "expected": [
+        "CASE-DISC-002",
+        "RULE-DISC-001"
+      ],
+      "returned": [
+        "RULE-DISC-001",
+        "CASE-DISC-002",
+        "CASE-DISC-002",
+        "RULE-CHILD-001",
+        "RULE-CONTEXT-001"
+      ],
+      "scores": [
+        0.6919,
+        0.5408,
+        0.4953,
+        0.4782,
+        0.4543
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.6919,
+      "top_score": 0.6919,
+      "isolation_violations": [],
+      "latency_ms": 18.8
+    },
+    {
+      "id": "SOC-07",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "아동복 광고가 아동을 성인의 성적 매력 대상으로 묘사하는지 검토할 기준",
+      "expected": [
+        "RULE-CHILD-001"
+      ],
+      "returned": [
+        "RULE-CHILD-001",
+        "RULE-CHILD-001",
+        "RULE-CHILD-001",
+        "RULE-CHILD-001",
+        "RULE-DISC-001"
+      ],
+      "scores": [
+        0.7742,
+        0.7664,
+        0.7422,
+        0.6831,
+        0.6513
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.7742,
+      "top_score": 0.7742,
+      "isolation_violations": [],
+      "latency_ms": 17.2
+    },
+    {
+      "id": "SOC-08",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "피부 고민이나 직업을 이유로 소비자를 열등하게 표현하는 문구",
+      "expected": [
+        "RULE-DIGNITY-001"
+      ],
+      "returned": [
+        "RULE-DIGNITY-001",
+        "RULE-DISC-001",
+        "RULE-DIGNITY-001",
+        "RULE-DIGNITY-001",
+        "RULE-DISC-001"
+      ],
+      "scores": [
+        0.6127,
+        0.5233,
+        0.4957,
+        0.483,
+        0.4507
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.6127,
+      "top_score": 0.6127,
+      "isolation_violations": [],
+      "latency_ms": 18.1
+    },
+    {
+      "id": "SOC-09",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "윤리적 공급망 정책만으로 모든 협력사의 인권 이행을 보장할 수 있는가",
+      "expected": [
+        "RULE-LABOR-001"
+      ],
+      "returned": [
+        "RULE-LABOR-001",
+        "RULE-LABOR-001",
+        "RULE-CHILD-001",
+        "RULE-LABOR-001",
+        "RULE-DIGNITY-001"
+      ],
+      "scores": [
+        0.621,
+        0.5344,
+        0.4586,
+        0.4574,
+        0.449
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.621,
+      "top_score": 0.621,
+      "isolation_violations": [],
+      "latency_ms": 20.1
+    },
+    {
+      "id": "SOC-10",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "광고 게시 날짜와 논란 보도 날짜가 다를 때 근거를 어떻게 사용할까",
+      "expected": [
+        "RULE-CONTEXT-001",
+        "CASE-HIST-002"
+      ],
+      "returned": [
+        "CASE-DISC-001",
+        "RULE-CONTEXT-001",
+        "RULE-HIST-001",
+        "RULE-HIST-001",
+        "CASE-HIST-001"
+      ],
+      "scores": [
+        0.5657,
+        0.5635,
+        0.5534,
+        0.5402,
+        0.5373
+      ],
+      "hit_rank": 2,
+      "hit_score": 0.5635,
+      "top_score": 0.5657,
+      "isolation_violations": [],
+      "latency_ms": 17.6
+    },
+    {
+      "id": "SOC-11",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "탱크라는 제품명만으로 5·18 조롱을 확정해도 되는가",
+      "expected": [
+        "RULE-HIST-001"
+      ],
+      "returned": [
+        "RULE-HIST-001",
+        "RULE-CONTEXT-001",
+        "CASE-HIST-001",
+        "CASE-DIGNITY-001",
+        "CASE-DISC-001"
+      ],
+      "scores": [
+        0.569,
+        0.4542,
+        0.4107,
+        0.3656,
+        0.3603
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.569,
+      "top_score": 0.569,
+      "isolation_violations": [],
+      "latency_ms": 17.8
+    },
+    {
+      "id": "SOC-12",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "아빠 엄마라는 단어가 등장하면 성차별 광고인가",
+      "expected": [
+        "RULE-DISC-001"
+      ],
+      "returned": [
+        "RULE-CONTEXT-001",
+        "RULE-HIST-001",
+        "RULE-DISC-001",
+        "CASE-HIST-002",
+        "RULE-DISC-001"
+      ],
+      "scores": [
+        0.49,
+        0.4376,
+        0.436,
+        0.4131,
+        0.4068
+      ],
+      "hit_rank": 3,
+      "hit_score": 0.436,
+      "top_score": 0.49,
+      "isolation_violations": [],
+      "latency_ms": 16.4
+    },
+    {
+      "id": "SOC-13",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "회사 인권 정책은 농장에 아동노동이 없음을 입증하는가",
+      "expected": [
+        "RULE-LABOR-001"
+      ],
+      "returned": [
+        "RULE-LABOR-001",
+        "RULE-LABOR-001",
+        "RULE-CHILD-001",
+        "RULE-LABOR-001",
+        "RULE-DIGNITY-001"
+      ],
+      "scores": [
+        0.5835,
+        0.5496,
+        0.4428,
+        0.429,
+        0.3604
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.5835,
+      "top_score": 0.5835,
+      "isolation_violations": [],
+      "latency_ms": 16.9
+    },
+    {
+      "id": "SOC-14",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "이미지나 모델 나이를 받지 못한 상태에서 아동 광고를 판단하는 한계",
+      "expected": [
+        "RULE-CHILD-001",
+        "RULE-CONTEXT-001"
+      ],
+      "returned": [
+        "RULE-CHILD-001",
+        "RULE-CHILD-001",
+        "RULE-CHILD-001",
+        "RULE-CHILD-001",
+        "RULE-CONTEXT-001"
+      ],
+      "scores": [
+        0.7929,
+        0.6605,
+        0.6344,
+        0.6142,
+        0.5556
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.7929,
+      "top_score": 0.7929,
+      "isolation_violations": [],
+      "latency_ms": 17.7
+    },
+    {
+      "id": "TGB-01",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "피부가 좋지 않으면 사랑받을 수 없다는 광고와 브랜드 가치의 충돌",
+      "expected": [
+        "taegeon_beauty-corporate_values-001"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-001",
+        "taegeon_beauty-corporate_values-006",
+        "taegeon_beauty-corporate_values-007",
+        "taegeon_beauty-corporate_values-005",
+        "taegeon_beauty-corporate_values-004"
+      ],
+      "scores": [
+        0.391,
+        0.349,
+        0.3476,
+        0.279,
+        0.2631
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.391,
+      "top_score": 0.391,
+      "isolation_violations": [],
+      "latency_ms": 16.7
+    },
+    {
+      "id": "TGB-02",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "모든 화장품 원료 공급업체의 인권을 전수 검증했다는 주장",
+      "expected": [
+        "taegeon_beauty-sustainability_report-003",
+        "taegeon_beauty-ethics_policy-002"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-007",
+        "taegeon_beauty-corporate_values-003",
+        "taegeon_beauty-corporate_values-005",
+        "taegeon_beauty-ethics_policy-002",
+        "taegeon_beauty-sustainability_report-003"
+      ],
+      "scores": [
+        0.4518,
+        0.449,
+        0.4256,
+        0.4196,
+        0.371
+      ],
+      "hit_rank": 4,
+      "hit_score": 0.4196,
+      "top_score": 0.4518,
+      "isolation_violations": [],
+      "latency_ms": 16.8
+    },
+    {
+      "id": "TGB-03",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "태건뷰티 포장 일부 개선을 전 제품 친환경 인증처럼 표현해도 되는가",
+      "expected": [
+        "taegeon_beauty-sustainability_report-002"
+      ],
+      "returned": [
+        "taegeon_beauty-sustainability_report-002",
+        "taegeon_beauty-corporate_values-005",
+        "taegeon_beauty-corporate_values-004",
+        "taegeon_beauty-ethics_policy-002",
+        "taegeon_beauty-corporate_values-003"
+      ],
+      "scores": [
+        0.4947,
+        0.4129,
+        0.3821,
+        0.3609,
+        0.3442
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.4947,
+      "top_score": 0.4947,
+      "isolation_violations": [],
+      "latency_ms": 16.8
+    },
+    {
+      "id": "TGB-04",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "태건뷰티가 실제 비건 인증을 받았는가",
+      "expected": [
+        "taegeon_beauty-ethics_policy-002"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-005",
+        "taegeon_beauty-corporate_values-004",
+        "taegeon_beauty-corporate_values-006",
+        "taegeon_beauty-corporate_values-007",
+        "taegeon_beauty-ethics_policy-003"
+      ],
+      "scores": [
+        0.1595,
+        0.1463,
+        0.1348,
+        0.1192,
+        0.0916
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.1595,
+      "isolation_violations": [],
+      "latency_ms": 16.1
+    },
+    {
+      "id": "SJR-01",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "아르바이트와 배달 노동자를 하찮게 표현하는 카페 채용 광고",
+      "expected": [
+        "seojun_roasters-corporate_values-002",
+        "seojun_roasters-ethics_policy-001"
+      ],
+      "returned": [
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-ethics_policy-001",
+        "seojun_roasters-corporate_values-007",
+        "seojun_roasters-corporate_values-006",
+        "seojun_roasters-corporate_values-005"
+      ],
+      "scores": [
+        0.3894,
+        0.3514,
+        0.3399,
+        0.3295,
+        0.3228
+      ],
+      "hit_rank": 2,
+      "hit_score": 0.3514,
+      "top_score": 0.3894,
+      "isolation_violations": [],
+      "latency_ms": 16.6
+    },
+    {
+      "id": "SJR-02",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "모든 커피 원두 농장이 아동노동 없이 생산한다는 보장",
+      "expected": [
+        "seojun_roasters-sustainability_report-003",
+        "seojun_roasters-ethics_policy-002"
+      ],
+      "returned": [
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-005",
+        "seojun_roasters-corporate_values-001",
+        "seojun_roasters-sustainability_report-003",
+        "seojun_roasters-ethics_policy-001"
+      ],
+      "scores": [
+        0.543,
+        0.4863,
+        0.3904,
+        0.363,
+        0.3199
+      ],
+      "hit_rank": 4,
+      "hit_score": 0.363,
+      "top_score": 0.543,
+      "isolation_violations": [],
+      "latency_ms": 16.2
+    },
+    {
+      "id": "SJR-03",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "일부 매장의 다회용기 사용을 전 매장 무폐기 운영으로 홍보해도 되는가",
+      "expected": [
+        "seojun_roasters-sustainability_report-002"
+      ],
+      "returned": [
+        "seojun_roasters-sustainability_report-002",
+        "seojun_roasters-ethics_policy-001",
+        "seojun_roasters-corporate_values-008",
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-005"
+      ],
+      "scores": [
+        0.6511,
+        0.3224,
+        0.2989,
+        0.2842,
+        0.2743
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.6511,
+      "top_score": 0.6511,
+      "isolation_violations": [],
+      "latency_ms": 17.7
+    },
+    {
+      "id": "SJR-04",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "서준로스터스 공정무역 인증서와 농장 실사 결과",
+      "expected": [
+        "seojun_roasters-ethics_policy-002"
+      ],
+      "returned": [
+        "seojun_roasters-ethics_policy-002",
+        "seojun_roasters-sustainability_report-003",
+        "seojun_roasters-corporate_values-005",
+        "seojun_roasters-ethics_policy-003",
+        "seojun_roasters-corporate_values-003"
+      ],
+      "scores": [
+        0.301,
+        0.2462,
+        0.174,
+        0.1693,
+        0.1612
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.301,
+      "top_score": 0.301,
+      "isolation_violations": [],
+      "latency_ms": 16.3
+    },
+    {
+      "id": "TGB-05",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "도자기 피부로 완벽 변신! 3일이면 완전히 다른 사람이 됩니다",
+      "expected": [
+        "taegeon_beauty-corporate_values-004"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-004",
+        "taegeon_beauty-corporate_values-007",
+        "taegeon_beauty-corporate_values-008",
+        "taegeon_beauty-corporate_values-001",
+        "taegeon_beauty-corporate_values-005"
+      ],
+      "scores": [
+        0.3174,
+        0.1944,
+        0.1781,
+        0.1422,
+        0.1262
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.3174,
+      "top_score": 0.3174,
+      "isolation_violations": [],
+      "latency_ms": 16.7
+    },
+    {
+      "id": "TGB-06",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "아직도 모공 방치 중? 지금 안 바꾸면 늦어요",
+      "expected": [
+        "taegeon_beauty-corporate_values-006"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-002",
+        "taegeon_beauty-corporate_values-008",
+        "taegeon_beauty-sustainability_report-002",
+        "taegeon_beauty-corporate_values-006",
+        "taegeon_beauty-ethics_policy-001"
+      ],
+      "scores": [
+        0.2537,
+        0.2077,
+        0.1039,
+        0.0974,
+        0.0835
+      ],
+      "hit_rank": 4,
+      "hit_score": 0.0974,
+      "top_score": 0.2537,
+      "isolation_violations": [],
+      "latency_ms": 15.7
+    },
+    {
+      "id": "TGB-07",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "20대 여성만을 위한 프리미엄 스킨케어 라인",
+      "expected": [
+        "taegeon_beauty-corporate_values-007"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-007",
+        "taegeon_beauty-corporate_values-004",
+        "taegeon_beauty-corporate_values-001",
+        "taegeon_beauty-corporate_values-005",
+        "taegeon_beauty-sustainability_report-002"
+      ],
+      "scores": [
+        0.5027,
+        0.418,
+        0.2685,
+        0.2045,
+        0.1554
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.5027,
+      "top_score": 0.5027,
+      "isolation_violations": [],
+      "latency_ms": 16.0
+    },
+    {
+      "id": "TGB-08",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "오늘 자정 마감! 지금 안 사면 다시는 없는 가격",
+      "expected": [
+        "taegeon_beauty-corporate_values-008"
+      ],
+      "returned": [
+        "taegeon_beauty-corporate_values-006",
+        "taegeon_beauty-corporate_values-002",
+        "taegeon_beauty-corporate_values-005",
+        "taegeon_beauty-ethics_policy-003",
+        "taegeon_beauty-sustainability_report-002"
+      ],
+      "scores": [
+        0.1348,
+        0.1089,
+        0.0561,
+        0.0466,
+        0.0231
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.1348,
+      "isolation_violations": [],
+      "latency_ms": 15.8
+    },
+    {
+      "id": "SJR-05",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "아는 사람만 오는 프리미엄 스페셜티 라운지",
+      "expected": [
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-007"
+      ],
+      "returned": [
+        "seojun_roasters-corporate_values-007",
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-003",
+        "seojun_roasters-corporate_values-005",
+        "seojun_roasters-corporate_values-008"
+      ],
+      "scores": [
+        0.323,
+        0.293,
+        0.1975,
+        0.1897,
+        0.1548
+      ],
+      "hit_rank": 1,
+      "hit_score": 0.323,
+      "top_score": 0.323,
+      "isolation_violations": [],
+      "latency_ms": 16.3
+    },
+    {
+      "id": "SJR-06",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "프랜차이즈 커피는 커피가 아닙니다",
+      "expected": [
+        "seojun_roasters-corporate_values-005"
+      ],
+      "returned": [
+        "seojun_roasters-corporate_values-001",
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-006",
+        "seojun_roasters-corporate_values-003",
+        "seojun_roasters-corporate_values-005"
+      ],
+      "scores": [
+        0.5497,
+        0.5402,
+        0.457,
+        0.2882,
+        0.2706
+      ],
+      "hit_rank": 5,
+      "hit_score": 0.2706,
+      "top_score": 0.5497,
+      "isolation_violations": [],
+      "latency_ms": 15.5
+    },
+    {
+      "id": "SJR-07",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "산미도 구분 못 하면서 커피 좋아한다고요?",
+      "expected": [
+        "seojun_roasters-corporate_values-006",
+        "seojun_roasters-corporate_values-001"
+      ],
+      "returned": [
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-001",
+        "seojun_roasters-corporate_values-006",
+        "seojun_roasters-corporate_values-005",
+        "seojun_roasters-corporate_values-003"
+      ],
+      "scores": [
+        0.5808,
+        0.4451,
+        0.4124,
+        0.3774,
+        0.2873
+      ],
+      "hit_rank": 2,
+      "hit_score": 0.4451,
+      "top_score": 0.5808,
+      "isolation_violations": [],
+      "latency_ms": 16.1
+    },
+    {
+      "id": "SJR-08",
+      "kind": "retrieval",
+      "corpus": "corporate_demo",
+      "query": "주문 후 60초, 동네에서 가장 빠른 커피",
+      "expected": [
+        "seojun_roasters-corporate_values-008"
+      ],
+      "returned": [
+        "seojun_roasters-corporate_values-004",
+        "seojun_roasters-corporate_values-008",
+        "seojun_roasters-corporate_values-005",
+        "seojun_roasters-corporate_values-006",
+        "seojun_roasters-corporate_values-001"
+      ],
+      "scores": [
+        0.4576,
+        0.4021,
+        0.2857,
+        0.2739,
+        0.2341
+      ],
+      "hit_rank": 2,
+      "hit_score": 0.4021,
+      "top_score": 0.4576,
+      "isolation_violations": [],
+      "latency_ms": 19.7
+    },
+    {
+      "id": "ISOLATION-01",
+      "kind": "isolation",
+      "corpus": "corporate_demo",
+      "query": "윤리적 조달 정책",
+      "expected": [],
+      "returned": [],
+      "scores": [],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": null,
+      "isolation_violations": [],
+      "latency_ms": 6.1
+    },
+    {
+      "id": "SCOPE-01",
+      "kind": "retrieval",
+      "corpus": "social",
+      "query": "한일 과거사 상징의 모든 역사적 사실을 검증할 수 있는가",
+      "expected": [
+        "RULE-CONTEXT-001"
+      ],
+      "returned": [
+        "RULE-HIST-001",
+        "RULE-CONTEXT-001",
+        "CASE-HIST-001",
+        "RULE-DIGNITY-001",
+        "RULE-HIST-001"
+      ],
+      "scores": [
+        0.5151,
+        0.3725,
+        0.3645,
+        0.3426,
+        0.3372
+      ],
+      "hit_rank": 2,
+      "hit_score": 0.3725,
+      "top_score": 0.5151,
+      "isolation_violations": [],
+      "latency_ms": 16.1
+    },
+    {
+      "id": "NEG-01",
+      "kind": "negative",
+      "corpus": "social",
+      "query": "신학기 맞이 운동화 전 품목 20% 할인 이벤트",
+      "expected": [],
+      "returned": [
+        "RULE-HIST-001",
+        "RULE-CONTEXT-001",
+        "CASE-DISC-001",
+        "CASE-HIST-001",
+        "RULE-HIST-001"
+      ],
+      "scores": [
+        0.3615,
+        0.3549,
+        0.346,
+        0.3374,
+        0.3062
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.3615,
+      "isolation_violations": [],
+      "latency_ms": 16.6
+    },
+    {
+      "id": "NEG-02",
+      "kind": "negative",
+      "corpus": "social",
+      "query": "주말 브런치 신메뉴 출시, 아보카도 토스트를 만나보세요",
+      "expected": [],
+      "returned": [
+        "RULE-HIST-001",
+        "RULE-CONTEXT-001",
+        "CASE-HIST-002",
+        "CASE-DIGNITY-001",
+        "CASE-DISC-001"
+      ],
+      "scores": [
+        0.5006,
+        0.4771,
+        0.3882,
+        0.3548,
+        0.3464
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.5006,
+      "isolation_violations": [],
+      "latency_ms": 16.5
+    },
+    {
+      "id": "NEG-03",
+      "kind": "negative",
+      "corpus": "social",
+      "query": "스마트폰 배터리 교체 서비스 예약 안내",
+      "expected": [],
+      "returned": [
+        "RULE-HIST-001",
+        "CASE-HIST-003",
+        "CASE-HIST-001",
+        "CASE-DISC-001",
+        "RULE-CONTEXT-001"
+      ],
+      "scores": [
+        0.3778,
+        0.3071,
+        0.2956,
+        0.2775,
+        0.2562
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.3778,
+      "isolation_violations": [],
+      "latency_ms": 14.9
+    },
+    {
+      "id": "NEG-04",
+      "kind": "negative",
+      "corpus": "social",
+      "query": "여름 휴가철 항공권 얼리버드 특가 오픈",
+      "expected": [],
+      "returned": [
+        "RULE-HIST-001",
+        "RULE-CONTEXT-001",
+        "CASE-HIST-002",
+        "CASE-DISC-001",
+        "RULE-CONTEXT-001"
+      ],
+      "scores": [
+        0.4265,
+        0.3678,
+        0.3279,
+        0.2948,
+        0.2805
+      ],
+      "hit_rank": null,
+      "hit_score": null,
+      "top_score": 0.4265,
+      "isolation_violations": [],
+      "latency_ms": 16.1
+    }
+  ]
+}
