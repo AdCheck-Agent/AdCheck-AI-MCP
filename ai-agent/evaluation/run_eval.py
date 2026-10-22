@@ -14,7 +14,7 @@ def main() -> int:
     if model is None:
         print("OPENAI_API_KEY가 없어 실제 모델 평가를 건너뜁니다.")
         return 1
-    cases = load_cases()
+    cases = [c for c in load_cases() if c.get("real_model")]
     matched, confusion = 0, Counter()
     for case in cases:
         got = run_case(case, model).status

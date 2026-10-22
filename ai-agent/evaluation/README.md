@@ -13,3 +13,7 @@ PYTHONPATH=ai-agent python ai-agent/evaluation/run_eval.py
 
 `scripted`의 `"__error__"`는 모델 호출 예외를 흉내 냅니다. 케이스를 추가할 때는
 `evidence`(source: social | corporate)와 `expected_status`를 채웁니다.
+
+`real_model: true`인 케이스만 실제 모델 평가에 쓰입니다. 입력만으로 기대 status가 정해지는
+케이스(근거 없음, 명확히 평범한 문구 등)만 표시하고, 모델 고장·지어낸 근거처럼 가짜 모델로만
+재현되는 케이스는 표시하지 않습니다. 실제 모델 평가에 케이스를 더하려면 `real_model`을 true로 둡니다.

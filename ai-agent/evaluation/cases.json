@@ -17,7 +17,8 @@
   "expected_status": "pass",
   "scripted": [
    "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "pass-02",
@@ -37,7 +38,8 @@
   "expected_status": "pass",
   "scripted": [
    "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "pass-03",
@@ -57,7 +59,8 @@
   "expected_status": "pass",
   "scripted": [
    "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "revise-01",
@@ -78,7 +81,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"봄맞이 감사 할인\"}]}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "revise-02",
@@ -99,7 +103,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"fear_and_anxiety\", \"severity\": \"medium\", \"quote\": \"평생 후회\", \"reason\": \"이유\", \"evidence_ids\": [\"C1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"지금 만나보세요\"}]}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "revise-03",
@@ -128,7 +133,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}, {\"category\": \"fear_and_anxiety\", \"severity\": \"medium\", \"quote\": \"평생 후회\", \"reason\": \"이유\", \"evidence_ids\": [\"C1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"봄맞이 감사 할인\"}, {\"index\": 1, \"suggestion\": \"지금 만나보세요\"}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "revise-04",
@@ -149,7 +155,8 @@
   "scripted": [
    "```json\n{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}\n```",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"봄맞이 감사 할인\"}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "revise-05",
@@ -171,7 +178,8 @@
    "형식이 깨진 응답",
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"봄맞이 감사 할인\"}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-01",
@@ -182,7 +190,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"위험\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "review-02",
@@ -202,7 +211,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": false, \"summary\": \"근거 부족\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-03",
@@ -222,7 +232,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"uncertain\", \"evidence_sufficient\": true, \"summary\": \"애매함\", \"findings\": []}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-04",
@@ -242,7 +253,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"위험\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [], \"needs_human_review\": false}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-05",
@@ -262,7 +274,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"위험\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S9\"], \"needs_human_review\": false}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-06",
@@ -282,7 +295,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"위험\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"원문에 없는 문구\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-07",
@@ -302,7 +316,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-08",
@@ -313,7 +328,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
-  ]
+  ],
+  "real_model": true
  },
  {
   "id": "review-09",
@@ -334,7 +350,8 @@
   "scripted": [
    "깨짐",
    "또 깨짐"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-10",
@@ -354,7 +371,8 @@
   "expected_status": "needs_review",
   "scripted": [
    "__error__"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-11",
@@ -375,7 +393,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"탱크데이 특별전\"}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-12",
@@ -396,7 +415,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"fear_and_anxiety\", \"severity\": \"medium\", \"quote\": \"평생 후회\", \"reason\": \"이유\", \"evidence_ids\": [\"C1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"안 사면 평생 후회\"}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-13",
@@ -417,7 +437,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}]}",
    "__error__"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-14",
@@ -446,7 +467,8 @@
   "scripted": [
    "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크데이\", \"reason\": \"이유\", \"evidence_ids\": [\"S1\"], \"needs_human_review\": false}, {\"category\": \"fear_and_anxiety\", \"severity\": \"medium\", \"quote\": \"평생 후회\", \"reason\": \"이유\", \"evidence_ids\": [\"C1\"], \"needs_human_review\": false}]}",
    "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"봄맞이 감사 할인\"}]}"
-  ]
+  ],
+  "real_model": false
  },
  {
   "id": "review-15",
@@ -466,6 +488,7 @@
   "expected_status": "needs_review",
   "scripted": [
    "{\"risk\": \"uncertain\", \"evidence_sufficient\": true, \"summary\": \"애매함\", \"findings\": []}"
-  ]
+  ],
+  "real_model": false
  }
 ]

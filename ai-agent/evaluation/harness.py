@@ -1,5 +1,6 @@
 """Shared runner: builds a graph state from a case and runs it with a given model."""
 
+import asyncio
 import json
 from pathlib import Path
 from unittest.mock import patch
@@ -45,6 +46,8 @@ def run_case(case: dict, model: ReviewModel | None) -> ReviewResponse:
             ),
         ):
             graph = graph_module.build_graph()
-            return ReviewResponse.model_validate(graph.invoke(initial_state(request)))
+            # The external search node is async-only, so the graph must run on the async API.
+            result = asyncio.run(graph.ainvoke(initial_state(request)))
+            return ReviewResponse.model_validate(result)
     finally:
         set_review_model(None)
