@@ -4,7 +4,7 @@ SNS 광고 문구의 사회·역사적 논란 가능성을 검토하는 AI 서�
 Python 3.12, FastAPI, Pydantic v2, LangGraph, httpx를 사용하며, venv + pip로 환경을 관리합니다.
 Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 포함하지 않습니다.
 
-**현재 실제 RAG·LLM 검수는 수행하지 않습니다.** API key 없이 실행되며, 검수 API는
+**RAG 서비스의 실제 적재·검색은 구현됐으며, Agent는 설정에 따라 실제 RAG를 호출하고, LLM 판정은 아직 mock입니다.** API key 없이 실행되며, 검수 API는
 `[MOCK]` 요약과 `needs_review`를 반환합니다. 근거가 없는 상태에서 통과나 위반을 확정하지 않습니다.
 
 ## 서비스 구성
@@ -12,14 +12,13 @@ Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 �
 | 서비스 | 기본 포트 | 현재 역할 |
 |---|---:|---|
 | ai-agent | 8000 | 입력 검증, 금기어 필터, LangGraph, 응답 검증 |
-| rag-mcp | 8001 | 사회·역사 / 기업 가치 검색 HTTP placeholder |
+| rag-mcp | 8001 | pgvector 검색, CSV/XLSX 기업 문서 처리, 실제 MCP |
 | business-mcp | 8002 | 외부검색 HTTP placeholder; 실제 검색은 보류 |
-| qdrant | 6333 | 공식 이미지, 데이터 볼륨; 아직 검색·적재 미연결 |
+| pgvector | 5433 | PostgreSQL 18 / vector(384), 기업별 문서·chunk 저장 |
 
-`rag-mcp`와 `business-mcp`는 **MCP 프로토콜 서버가 아닙니다.** 현재는 FastAPI의
-HTTP Tool 인터페이스입니다. MCP SDK에 대한 추측을 피하고, 추후 검증된 SDK 및 transport로
-교체할 수 있도록 Tool 함수와 Agent의 Protocol / HTTP adapter를 분리했습니다.
-현재 그래프는 adapter를 호출하지 않아 세 서비스가 각각 독립 실행됩니다.
+`rag-mcp`는 실제 MCP `/mcp`와 검색·문서 관리 REST API를 제공합니다.
+구현·실행·업로드 컬럼은 [RAG 가이드](rag-mcp/README.md)를 확인하세요.
+Compose에서는 Agent의 실제 MCP 검색이 켜집니다. 로컬은 RAG_RETRIEVAL_ENABLED=true로 활성화합니다.
 
 ## 디렉터리 구조
 
@@ -52,7 +51,7 @@ HTTP Tool 인터페이스입니다. MCP SDK에 대한 추측을 피하고, 추�
 │   │   ├── schemas.py
 │   │   ├── tools/{search_social_context,search_corporate_value}.py
 │   │   └── retrieval/{vector_store,embeddings}.py
-│   ├── data/{social,corporate}/.gitkeep
+│   ├── data/  # 사회 기준·사례, 두 기업 합성 정책, 출처·적재 목록
 │   ├── tests/test_rag_service.py
 │   └── Dockerfile
 ├── business-mcp/
@@ -98,7 +97,7 @@ cp -n .env.example .env
 `.env`는 Git과 Docker build context에서 제외됩니다. API key 설정은 없습니다.
 로컬 `.env`의 URL은 `localhost`이며, Compose는 컨테이너 통신 URL을 서비스명으로 덮어씁니다.
 `HTTP_TIMEOUT_SECONDS`는 향후 HTTP client 생성 시 사용할 설정입니다.
-`QDRANT_URL`은 추후 Retriever 구현용 예약 설정이며 현재 사용하지 않습니다.
+`RAG_DATABASE_URL`은 RAG 서비스의 pgvector 접속 설정입니다.
 
 ## 로컬 실행
 
@@ -157,7 +156,7 @@ Backend는 AI Agent의 `POST http://localhost:8000/api/v1/reviews`를 JSON으로
 ```json
 {
   "status": "needs_review",
-  "summary": "[MOCK] 실제 RAG·LLM 검수를 수행하지 않았습니다. 근거 확인과 사람 검토가 필요합니다.",
+  "summary": "[MOCK] LLM 판정은 아직 구현하지 않았습니다. 검색 여부와 별개로 사람 검토가 필요합니다.",
   "findings": [],
   "trace_id": "trace_0123456789abcdef0123456789abcdef"
 }
@@ -204,19 +203,27 @@ START → rule_filter → retrieve_social_context → retrieve_corporate_value �
 - 요청별 상태 / trace_id, LangGraph compile 및 sync / async 실행
 - 최소 로그에는 trace_id와 상태만 기록
 - Retriever / Embeddings Protocol, HTTP Tool 함수와 클라이언트 인터페이스
-- Dockerfile 3개와 Qdrant 공식 이미지를 사용하는 Compose
+- Dockerfile 3개와 PostgreSQL 18 pgvector 이미지를 사용하는 Compose
 
 Mock / 미구현:
 
-- 사회·역사 / 기업 가치 retrieval: 빈 근거 반환, 데이터 수집·임베딩·적재 없음
+- RAG 적재·검색과 Agent 노드 연결 구현됨. 로컬 기본 설정은 오프라인이며 Compose는 실제 검색 활성화
 - LLM 판단: API 호출 없이 근거 부족과 불확실을 설정
 - 대안 생성: 분기와 TODO만 존재하며 실제 suggestion 생성 없음
-- MCP protocol, 외부검색: 미구현; HTTP tool 응답에 `mock: true` 표시
+- RAG MCP 구현 완료. Business 외부검색은 이 커밋 범위에서 제외
 - Output Validator: 현재는 schema만 검사; 근거 출처 / 인용 검증은 후속 작업
 
 규칙 hit를 실제 근거처럼 꾸미지 않아 현재 API의 `findings`는 비어 있습니다.
 `pass` / `revise` 분기는 테스트 전용 reviewer로 검증하며 운영 mock API에서는 도달하지 않습니다.
 `pass`는 최종 게시 승인이나 법률 판단을 뜻하지 않습니다.
+
+## 준비된 RAG 문서
+
+[데이터 안내](rag-mcp/data/README.md)에 사회·역사 검수 기준 6개, 확인한 사례 6개,
+태건뷰티·서준로스터스의 개발용 합성 정책 각 3개를 정리했습니다.
+기관 사실·보도 내용·프로젝트 검수 기준을 구분하고 출처 12개를 기록했습니다.
+미확인 사례는 적재 대상에서 제외하며, 합성 기업 정책은 demo 용도로 구분합니다.
+사회 문서 적재는 `python -m rag_mcp.cli ingest-social`로 수행합니다. 기업 샘플은 CSV/XLSX 3종이며 자동 적재하지 않습니다.
 
 ## Docker Compose
 
@@ -234,10 +241,10 @@ docker compose up --build
 docker compose down
 ```
 
-Qdrant 데이터는 `qdrant-data` named volume에 유지합니다. RAG가 아직 Qdrant를 사용하지 않으므로
-검색 서비스 시작에 Qdrant readiness 의존성은 두지 않았습니다.
+pgvector 데이터는 `rag-postgres`, 모델 캐시는 `rag-models` named volume에 유지합니다.
+RAG는 DB readiness 확인 후 전용 schema를 초기화합니다. 기존 Qdrant 볼륨은 자동 삭제하지 않습니다.
 Docker build context는 루트이고, 각 서비스는 자기 소스만 복사하여 독립 프로세스로 실행합니다.
-각 Dockerfile은 루트 `requirements.txt`를 pip로 설치합니다. 개발 도구는 이미지에 포함하지 않습니다.
+공통 의존성은 루트 requirements, RAG 추가 의존성은 rag-mcp/requirements.txt를 pip로 설치합니다. 개발 도구는 이미지에 포함하지 않습니다.
 
 ## 테스트와 코드 품질
 
@@ -273,11 +280,11 @@ python -m ruff format --check .
 **AI 2 — 데이터 / 검색 / MCP**
 
 - 승인된 합성 / 공개 기준 데이터와 출처·버전 메타데이터 설계
-- 문서 분할, Embeddings 구현, Qdrant 적재 / 검색, 기업별 metadata 필터
-- `search_social_context`, `search_corporate_value` 실제 구현
-- MCP SDK의 지원 API / transport 확인 후 서버·클라이언트 adapter 교체
+- pgvector 적재·검색과 CSV/XLSX 업로드 구현 완료. 실제 기업 자료 연동과 검색 품질 평가 진행
+- 두 검색 Tool의 Agent 노드 연결 및 문서별 검색 범위 계약 확정
+- RAG MCP 서버·client 구현 완료, 운영 연결 설정 확인
 - Agent retrieval node에 client lifecycle / 설정 / timeout 주입
 - 외부검색은 후속 범위 확정 후 구현하며 현재는 보류
 
 참고한 LangGraph API: [StateGraph 공식 문서](https://reference.langchain.com/python/langgraph/graph/state/StateGraph).
-Qdrant 이미지 태그: [공식 v1.15.5 릴리스](https://github.com/qdrant/qdrant/releases/tag/v1.15.5).
+벡터 저장소: [pgvector 공식 문서](https://github.com/pgvector/pgvector).

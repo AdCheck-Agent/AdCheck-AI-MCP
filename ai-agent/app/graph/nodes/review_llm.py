@@ -9,6 +9,6 @@ def review_llm(state: ReviewState) -> dict:
         "risk": "uncertain",
         "findings": [],
         "summary": (
-            "[MOCK] 실제 RAG·LLM 검수를 수행하지 않았습니다. 근거 확인과 사람 검토가 필요합니다."
+            "[MOCK] LLM 판정은 아직 구현하지 않았습니다. 검색 여부와 별개로 사람 검토가 필요합니다."
         ),
     }

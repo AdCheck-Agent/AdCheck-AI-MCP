@@ -8,8 +8,8 @@ services:
     environment:
       AI_AGENT_PORT: 8000
       RAG_MCP_URL: http://rag-mcp:8001
+      RAG_RETRIEVAL_ENABLED: "true"
       BUSINESS_MCP_URL: http://business-mcp:8002
-      QDRANT_URL: http://qdrant:6333
       HTTP_TIMEOUT_SECONDS: ${HTTP_TIMEOUT_SECONDS:-10}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
     depends_on:
@@ -30,7 +30,14 @@ services:
     ports:
       - "${RAG_MCP_PORT:-8001}:8001"
     environment:
-      QDRANT_URL: http://qdrant:6333
+      RAG_DATABASE_URL: postgresql://${RAG_DB_USER:-adcheck}:${RAG_DB_PASSWORD:-adcheck}@pgvector:5432/${RAG_DB_NAME:-adcheck_rag}
+      RAG_MODEL_CACHE: /models
+      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+    volumes:
+      - rag-models:/models
+    depends_on:
+      pgvector:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health', timeout=3)"]
       interval: 10s
@@ -49,12 +56,22 @@ services:
       timeout: 5s
       retries: 5
       start_period: 10s
-  qdrant:
-    image: qdrant/qdrant:v1.15.5
+  pgvector:
+    image: pgvector/pgvector:pg18
     ports:
-      - "${QDRANT_PORT:-6333}:6333"
+      - "${RAG_DB_PORT:-5433}:5432"
+    environment:
+      POSTGRES_USER: ${RAG_DB_USER:-adcheck}
+      POSTGRES_PASSWORD: ${RAG_DB_PASSWORD:-adcheck}
+      POSTGRES_DB: ${RAG_DB_NAME:-adcheck_rag}
     volumes:
-      - qdrant-data:/qdrant/storage
+      - rag-postgres:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
 volumes:
-  qdrant-data:
+  rag-postgres:
+  rag-models:

@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 
 from app.api.routes import health, review
+from app.clients.rag_mcp_client import RagMCPTransportClient
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 from app.graph.graph import build_graph
@@ -12,7 +13,15 @@ from app.graph.graph import build_graph
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     configure_logging(get_settings().log_level)
-    application.state.review_graph = build_graph()
+    settings = get_settings()
+    rag_tools = (
+        RagMCPTransportClient(
+            str(settings.rag_mcp_url).rstrip("/") + "/mcp", settings.http_timeout_seconds
+        )
+        if settings.rag_retrieval_enabled
+        else None
+    )
+    application.state.review_graph = build_graph(rag_tools=rag_tools)
     yield
 
 
