@@ -1,12 +1,10 @@
 ---
-document_id: social-labor-human-rights-v1
+document_id: social-labor-human-rights
 rule_id: RULE-LABOR-001
 title: 노동·인권 및 공급망 미화 표현 검토
 record_type: project_guideline
 category: labor_and_human_rights
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-ILO-RIGHTS]
 verification_status: sources_checked
 verified_at: "2026-10-22"

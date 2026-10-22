@@ -1,12 +1,10 @@
 ---
-document_id: case-seoul-milk-2021-v1
+document_id: case-seoul-milk-2021
 rule_id: CASE-DISC-001
 title: 서울우유 2021년 변신 연출 광고 논란
 record_type: reported_case
 category: discrimination_and_hate
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-DONGA-MILK]
 verification_status: sources_checked
 verified_at: "2026-10-22"

@@ -1,12 +1,10 @@
 ---
-document_id: case-asa-gender-2019-v1
+document_id: case-asa-gender-2019
 rule_id: CASE-DISC-002
 title: 영국 ASA의 2019년 아버지 육아 묘사 광고 판단
 record_type: reported_case
 category: discrimination_and_hate
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-ASA-GENDER]
 verification_status: sources_checked
 verified_at: "2026-10-22"

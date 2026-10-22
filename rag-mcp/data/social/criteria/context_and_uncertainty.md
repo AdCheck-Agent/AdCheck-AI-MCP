@@ -1,12 +1,10 @@
 ---
-document_id: social-context-uncertainty-v1
+document_id: social-context-uncertainty
 rule_id: RULE-CONTEXT-001
 title: 사회적 맥락 검수의 근거 사용과 판단 보류
 record_type: project_guideline
 category: social_issue
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-JNILBO-STARBUCKS, SRC-FN-ISOI]
 verification_status: sources_checked
 verified_at: "2026-10-22"

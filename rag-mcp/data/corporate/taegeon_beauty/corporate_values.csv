@@ -1,9 +1,9 @@
-﻿row_id,company_id,document_id,document_type,title,section,content,version,source_url,published_at,synthetic
-taegeon_beauty-corporate_values-001,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,외모 다양성,피부색·나이·성별·외모를 정상성이나 사회적 성공의 조건으로 표현하지 않는다. 피부 고민을 이유로 사람의 존엄성을 낮추거나 구매를 압박하지 않는다.,v2,,,True
-taegeon_beauty-corporate_values-002,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,역사·피해자 존중,전쟁·국가폭력·참사를 제품의 흡수·침투 성능을 강조하는 유머로 소비하지 않는다. 날짜·숫자·슬로건이 결합한 맥락을 함께 검토한다.,v2,,,True
-taegeon_beauty-corporate_values-003,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,제품 소통,실제 제품 자료가 확인되는 범위에서 설명한다. 이 합성 정책은 제품 효능 시험이나 인증 내역을 제공하지 않는다.,v2,,,True
-taegeon_beauty-corporate_values-004,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,미션,피부를 고쳐야 할 결점이 아니라 매일 돌보는 몸의 일부로 본다. 완벽한 피부로의 변신이나 다른 사람처럼 보이게 만드는 것보다 각자의 피부 상태에 맞는 꾸준한 관리를 제안한다.,v2,,,True
-taegeon_beauty-corporate_values-005,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,핵심 가치: 투명한 설명,성분·사용법·사용 시 주의사항을 쉽고 정확하게 설명하는 것을 우선한다. 기적·마법·즉각 변화 같은 과장된 비유보다 소비자가 스스로 판단할 수 있는 정보를 전달한다.,v2,,,True
-taegeon_beauty-corporate_values-006,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,브랜드 톤,차분하고 다정한 말투로 소비자의 선택을 존중한다. 불안·수치심·조급함을 자극하거나 명령조로 몰아붙이는 표현 대신 권유하고 설명하는 표현을 사용한다.,v2,,,True
-taegeon_beauty-corporate_values-007,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,주요 고객,나이·성별·피부 타입과 관계없이 피부 관리를 시작하거나 이어가려는 모든 사람을 고객으로 본다. 특정 연령대나 특정 성별만을 위한 브랜드로 소개하지 않는다.,v2,,,True
-taegeon_beauty-corporate_values-008,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치 — 합성,구매 경험 약속,소비자가 충분히 비교하고 고를 시간을 존중한다. 마감 임박·한정 수량을 반복해 구매를 서두르게 하는 방식보다 필요한 사람이 필요한 때에 고르는 경험을 지향한다.,v2,,,True
+﻿row_id,company_id,document_id,document_type,title,section,content,source_url,published_at
+taegeon_beauty-corporate_values-001,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,외모 다양성,피부색·나이·성별·외모를 정상성이나 사회적 성공의 조건으로 표현하지 않는다. 피부 고민을 이유로 사람의 존엄성을 낮추거나 구매를 압박하지 않는다.,,
+taegeon_beauty-corporate_values-002,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,역사·피해자 존중,전쟁·국가폭력·참사를 제품의 흡수·침투 성능을 강조하는 유머로 소비하지 않는다. 날짜·숫자·슬로건이 결합한 맥락을 함께 검토한다.,,
+taegeon_beauty-corporate_values-003,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,제품 소통,실제 제품 자료가 확인되는 범위에서 설명한다. 효능 시험 결과나 인증 내역으로 확인되지 않은 효과·인증은 광고에 표현하지 않는다.,,
+taegeon_beauty-corporate_values-004,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,미션,피부를 고쳐야 할 결점이 아니라 매일 돌보는 몸의 일부로 본다. 완벽한 피부로의 변신이나 다른 사람처럼 보이게 만드는 것보다 각자의 피부 상태에 맞는 꾸준한 관리를 제안한다.,,
+taegeon_beauty-corporate_values-005,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,핵심 가치: 투명한 설명,성분·사용법·사용 시 주의사항을 쉽고 정확하게 설명하는 것을 우선한다. 기적·마법·즉각 변화 같은 과장된 비유보다 소비자가 스스로 판단할 수 있는 정보를 전달한다.,,
+taegeon_beauty-corporate_values-006,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,브랜드 톤,차분하고 다정한 말투로 소비자의 선택을 존중한다. 불안·수치심·조급함을 자극하거나 명령조로 몰아붙이는 표현 대신 권유하고 설명하는 표현을 사용한다.,,
+taegeon_beauty-corporate_values-007,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,주요 고객,나이·성별·피부 타입과 관계없이 피부 관리를 시작하거나 이어가려는 모든 사람을 고객으로 본다. 특정 연령대나 특정 성별만을 위한 브랜드로 소개하지 않는다.,,
+taegeon_beauty-corporate_values-008,taegeon_beauty,taegeon_beauty-corporate_values,corporate_values,태건뷰티 기업가치,구매 경험 약속,소비자가 충분히 비교하고 고를 시간을 존중한다. 마감 임박·한정 수량을 반복해 구매를 서두르게 하는 방식보다 필요한 사람이 필요한 때에 고르는 경험을 지향한다.,,

@@ -1,4 +1,4 @@
-﻿row_id,company_id,document_id,document_type,title,section,content,version,source_url,published_at,synthetic
-taegeon_beauty-sustainability_report-001,taegeon_beauty,taegeon_beauty-sustainability_report,sustainability_report,태건뷰티 지속가능경영보고서 — 합성,보고 범위,이 문서는 개발용 합성 지속가능경영보고서이다. 실제 보고기간·실적·감사 결과가 없으며 아래 항목은 가상의 추진 방향이다.,v1,,,True
-taegeon_beauty-sustainability_report-002,taegeon_beauty,taegeon_beauty-sustainability_report,sustainability_report,태건뷰티 지속가능경영보고서 — 합성,포장 개선,불필요한 포장과 폐기물 감소를 지향한다. 일부 포장 개선을 전 제품의 환경 무해성으로 표현하지 않는다. 감축 수치와 인증 자료는 제공하지 않는다.,v1,,,True
-taegeon_beauty-sustainability_report-003,taegeon_beauty,taegeon_beauty-sustainability_report,sustainability_report,태건뷰티 지속가능경영보고서 — 합성,공급망 관리,원료 공급업체의 인권 현황을 확인하는 절차를 지향한다. 모든 협력업체의 노동환경을 전수 검증했다는 이행 증빙은 없다.,v1,,,True
+﻿row_id,company_id,document_id,document_type,title,section,content,source_url,published_at
+taegeon_beauty-sustainability_report-001,taegeon_beauty,taegeon_beauty-sustainability_report,sustainability_report,태건뷰티 지속가능경영보고서,보고 범위,이 보고서는 태건뷰티의 환경·사회 분야 추진 방향을 담는다. 정량 실적과 외부 감사 결과는 포함하지 않으며 목표와 이행 결과를 구분해 기술한다.,,
+taegeon_beauty-sustainability_report-002,taegeon_beauty,taegeon_beauty-sustainability_report,sustainability_report,태건뷰티 지속가능경영보고서,포장 개선,불필요한 포장과 폐기물 감소를 지향한다. 일부 포장 개선을 전 제품의 환경 무해성으로 표현하지 않는다. 감축 수치와 인증 자료는 제공하지 않는다.,,
+taegeon_beauty-sustainability_report-003,taegeon_beauty,taegeon_beauty-sustainability_report,sustainability_report,태건뷰티 지속가능경영보고서,공급망 관리,원료 공급업체의 인권 현황을 확인하는 절차를 지향한다. 모든 협력업체의 노동환경을 전수 검증했다는 이행 증빙은 없다.,,
