@@ -21,8 +21,8 @@ RAG 최신 구현·CSV/XLSX 업로드 계약은 [RAG 가이드](rag-mcp/README.m
 | LLM 판정 | 근거 부족·불확실을 반환하는 mock | 문맥 판단, 근거 충분성 판정, findings 생성 |
 | 대안 문구 | 수정 분기와 TODO | 실제 수정 문구 생성 |
 | 출력 검증 | Pydantic schema 검증 | 근거 출처, 인용 범위, 판정 일관성 검증 |
-| MCP | RAG 실제 MCP 서버·client, Business 별도 구현 | Agent RAG 검색 설정·실제 기업 자료 연동 확인 |
-| 외부검색 | HTTP placeholder와 빈 결과 | MVP 이후 범위 확정 시 구현 |
+| MCP | RAG·Business 실제 MCP 서버, RAG client | Business의 Agent MCP client 전환·첨부 문서 연결 |
+| 외부검색 | Tavily 검색, MCP·HTTP 제공, 상태·출처 반환 | 파트 1의 검색어 생성·호출 정책 연결 |
 | 실행 환경 | Python 3.12, venv, pip, requirements | 기능 추가에 따른 의존성·설정 갱신 |
 | Docker | 서비스별 Dockerfile, Compose, pgvector 볼륨 | 실제 연동 후 환경변수·의존성 조정 |
 
@@ -62,7 +62,7 @@ Spring Boot Backend (별도 저장소)
                     ├─ 금기어 탐지 ← 향후 RDB / 규칙 조회 API
                     ├─ 사회·역사 검색 ─┐
                     ├─ 기업 가치 검색 ─┴→ rag-mcp :8001 → pgvector :5432
-                    ├─ 필요 시 외부검색 → business-mcp :8002 (현재 보류)
+                    ├─ 필요 시 외부검색 → business-mcp :8002 → Tavily
                     ├─ LLM 판정
                     ├─ 수정안 생성
                     └─ 출력 검증
@@ -79,12 +79,12 @@ Spring Boot, Frontend, 금기어 RDB는 현재 Compose에 포함하지 않습니
 | [ai-agent/app/graph/state.py](ai-agent/app/graph/state.py) | 요청별 그래프 상태와 trace ID 생성 |
 | [ai-agent/app/graph/graph.py](ai-agent/app/graph/graph.py) | 노드 연결과 결과 분기 |
 | [ai-agent/app/graph/nodes/](ai-agent/app/graph/nodes/) | 규칙·검색·판정·생성·검증 노드 |
-| [ai-agent/app/clients/](ai-agent/app/clients/) | RAG / Business HTTP adapter와 Protocol |
+| [ai-agent/app/clients/](ai-agent/app/clients/) | RAG MCP / Business HTTP adapter와 Protocol |
 | [ai-agent/app/core/config.py](ai-agent/app/core/config.py) | Agent의 .env 설정 |
 | [ai-agent/app/rules/banned_expressions.json](ai-agent/app/rules/banned_expressions.json) | RDB 연동 전 임시 규칙 |
 | [rag-mcp/rag_mcp/](rag-mcp/rag_mcp/) | 검색 서버, Tool, Retriever / Embeddings 인터페이스 |
 | [rag-mcp/data/](rag-mcp/data/) | 사회 기준·확인 사례 12개, 두 기업 합성 정책 6개, 출처·적재 manifest |
-| [business-mcp/business_mcp/](business-mcp/business_mcp/) | 외부검색 placeholder |
+| [business-mcp/business_mcp/](business-mcp/business_mcp/) | Tavily 외부검색 MCP·HTTP 서버 |
 | [docker-compose.yml](docker-compose.yml) | 컨테이너 구성과 포트·내부 URL |
 | [requirements.txt](requirements.txt) | 실행 의존성 |
 | [requirements-dev.txt](requirements-dev.txt) | 실행 의존성 + pytest·Ruff |
@@ -134,7 +134,8 @@ Spring Boot, Frontend, 금기어 RDB는 현재 Compose에 포함하지 않습니
 
 RAG-MCP는 SDK v1.30.0의 실제 MCP `/mcp`와 REST 검색을 제공합니다.
 기업 문서 업로드 API·컬럼·예시는 [RAG 가이드](rag-mcp/README.md)에 정리했습니다.
-Business 외부검색의 현재 상태는 별도 Business 가이드를 참조하세요.
+Business도 실제 MCP `/mcp`와 기존 HTTP 검색을 제공합니다. Agent는 아직 Business HTTP adapter를 사용합니다.
+계약과 파트 1 연결 사항은 [Business 가이드](business-mcp/README.md)를 참조하세요.
 
 실제 검색으로 전환할 때 다음도 변경해야 합니다.
 

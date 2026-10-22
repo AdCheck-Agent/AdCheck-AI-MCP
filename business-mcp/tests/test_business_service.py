@@ -3,13 +3,13 @@ import httpx
 import pytest
 from app.clients.business_mcp_client import BusinessMCPClient
 from business_mcp.clients.tavily_client import TavilyClient
-from business_mcp.config import Settings, get_settings
+from business_mcp.config import Settings
 from business_mcp.schemas import SearchResult
-from business_mcp.server import app
+from business_mcp.server import create_app
 from fastapi.testclient import TestClient
 
 
-def test_business_health_and_tool() -> None:
+def test_business_health_and_tool(app) -> None:
     with TestClient(app) as client:
         assert client.get("/health").json()["service"] == "adcheck-business-mcp"
         response = client.post("/tools/search_recent_issue", json={"query": "최근 이슈"})
@@ -20,7 +20,7 @@ def test_business_health_and_tool() -> None:
         assert response.json()["related_criteria"] == []
 
 
-async def test_agent_business_adapter() -> None:
+async def test_agent_business_adapter(app) -> None:
     async with httpx.AsyncClient(
         transport=httpx.ASGITransport(app=app), base_url="http://business-mcp:8002", timeout=10
     ) as http:
@@ -30,20 +30,20 @@ async def test_agent_business_adapter() -> None:
 
 
 @pytest.mark.parametrize("query", ["", "  ", "가" * 401])
-def test_invalid_query(query: str) -> None:
+def test_invalid_query(app, query: str) -> None:
     with TestClient(app) as client:
         response = client.post("/tools/search_recent_issue", json={"query": query})
     assert response.status_code == 422
 
 
-@pytest.fixture(autouse=True)
-def no_real_key():
-    app.dependency_overrides[get_settings] = lambda: Settings(_env_file=None, tavily_api_key=None)
-    yield
-    app.dependency_overrides.clear()
+@pytest.fixture
+def app():
+    return create_app(Settings(_env_file=None, tavily_api_key=None))
 
 
-async def test_agent_to_tool_to_provider_wire_contract(monkeypatch: pytest.MonkeyPatch) -> None:
+async def test_agent_to_tool_to_provider_wire_contract(
+    app, monkeypatch: pytest.MonkeyPatch
+) -> None:
     calls = 0
 
     def provider(request: httpx.Request) -> httpx.Response:
@@ -88,7 +88,7 @@ async def test_agent_to_tool_to_provider_wire_contract(monkeypatch: pytest.Monke
     ],
 )
 async def test_http_outcome_contract(
-    monkeypatch: pytest.MonkeyPatch, status: str, code: int
+    app, monkeypatch: pytest.MonkeyPatch, status: str, code: int
 ) -> None:
     async def search(query: str, settings: Settings) -> SearchResult:
         return SearchResult(status=status, results=[], message="테스트 검색 상태")
