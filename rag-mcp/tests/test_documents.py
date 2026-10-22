@@ -121,3 +121,26 @@ def test_xlsx_accepts_blank_trailing_optional_columns() -> None:
     parsed = parse_policies("x.xlsx", buffer.getvalue(), Settings())
     assert parsed[0].source_url is None and parsed[0].published_at is None
     assert parsed[0].content == row["content"]
+
+
+async def test_social_chunks_drop_link_targets_but_keep_sources(embeddings) -> None:
+    docs = await social_documents(DATA, embeddings)
+    for doc in docs:
+        assert all("](" not in c.content and "http" not in c.content for c in doc.chunks)
+        assert doc.metadata["source_urls"]
+    history = next(d for d in docs if d.metadata["rule_id"] == "RULE-HIST-001")
+    assert any("국립5·18민주묘지" in c.content for c in history.chunks)  # link label stays
+
+
+@pytest.mark.parametrize("count", [0, 1, 96, 97, 110, 181, 300, 1000])
+def test_token_windows_are_even_bounded_and_overlapping(count) -> None:
+    from rag_mcp.retrieval.embeddings import token_windows
+
+    windows = token_windows(count, 96, 12)
+    if not count:
+        assert windows == []
+        return
+    assert windows[0][0] == 0 and windows[-1][1] == count
+    sizes = {end - start for start, end in windows}
+    assert max(sizes) <= 96 and max(sizes) - min(sizes) <= 1
+    assert all(windows[i][1] - windows[i + 1][0] >= 12 for i in range(len(windows) - 1))
