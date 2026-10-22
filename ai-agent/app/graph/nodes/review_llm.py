@@ -8,6 +8,7 @@ from app.llm.judge import (
     call_model,
     external_query,
     needs_review,
+    note_oversized,
     resolve,
 )
 
@@ -33,7 +34,7 @@ def review_llm(state: ReviewState) -> dict:
     if judgment is None:
         return needs_review("모델 판단을 얻지 못해 사람 검토가 필요합니다.")
 
-    result = resolve(judgment, state, catalog)
+    result = note_oversized(resolve(judgment, state, catalog), state)
     query = external_query(judgment, state, result)
     if query:
         result["external_search_query"] = query

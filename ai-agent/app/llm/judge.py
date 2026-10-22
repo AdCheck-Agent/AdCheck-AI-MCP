@@ -210,10 +210,47 @@ def _held_hit_summary(state: ReviewState, model_summary: str) -> str:
 
 MAX_QUERY_CHARS = 400
 
+# Personal data must not leave through a model-written search query.
+_PRIVATE = re.compile(
+    r"https?://\S+|www\.\S+"  # links
+    r"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"  # e-mail
+    r"|\+?\d[\d\-\s().]{7,}\d"  # phone-like digit runs
+)
+
+
+def clean_query(query: str, source_text: str) -> str | None:
+    """Strip links, e-mails and phone numbers; refuse to send the whole ad text out."""
+    query = " ".join(_PRIVATE.sub(" ", query).split())
+    if not 0 < len(query) <= MAX_QUERY_CHARS:
+        return None
+    ad = normalize(source_text)
+    if len(ad) >= 10 and ad in normalize(query):
+        return None
+    return query
+
 
 def external_query(judgment: Judgment, state: ReviewState, result: dict) -> str | None:
     """A search query is allowed once, and only while the evidence is still insufficient."""
     if result.get("evidence_sufficient") or state["external_search_attempted"]:
         return None
-    query = " ".join((judgment.external_search_query or "").split())
-    return query if 0 < len(query) <= MAX_QUERY_CHARS else None
+    return clean_query(judgment.external_search_query or "", state["source_text"])
+
+
+def oversized_sources(state: ReviewState) -> list[str]:
+    """Names of searches whose attached documents were too large to load in full."""
+    sources = (
+        ("사회·역사", state["social_context_result"]),
+        ("기업 가치", state["corporate_value_result"]),
+    )
+    return [name for name, found in sources if found is not None and found.status == "too_large"]
+
+
+def note_oversized(result: dict, state: ReviewState) -> dict:
+    """Say why evidence is incomplete, and never let incomplete evidence end in a pass."""
+    names = oversized_sources(state)
+    if not names:
+        return result
+    note = f"{'·'.join(names)} 첨부 문서가 너무 커서 근거를 전부 불러오지 못했습니다."
+    if result["risk"] == "no":
+        result = {**result, "risk": "uncertain", "evidence_sufficient": False}
+    return {**result, "summary": f"{note} {result['summary']}"}

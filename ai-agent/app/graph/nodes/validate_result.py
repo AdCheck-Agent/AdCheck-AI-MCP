@@ -3,6 +3,7 @@ import logging
 from app.graph.nodes.rule_filter import normalize
 from app.graph.state import ReviewState
 from app.llm.evidence import to_evidence
+from app.llm.judge import oversized_sources
 from app.schemas.review import Evidence, Finding, ReviewResponse
 
 logger = logging.getLogger(__name__)
@@ -70,6 +71,8 @@ def validate_result(state: ReviewState) -> dict:
             reasons.append("금기어가 탐지된 문구는 자동 통과 불가")
         if not state["evidence_sufficient"]:
             reasons.append("근거가 충분하지 않은데 통과 처리됨")
+        if oversized_sources(state):
+            reasons.append("첨부 문서를 전부 불러오지 못했는데 통과 처리됨")
 
     update: dict = {}
     if len(kept) != len(state["findings"]):
