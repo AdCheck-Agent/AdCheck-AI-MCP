@@ -13,7 +13,7 @@ Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 �
 |---|---:|---|
 | ai-agent | 8000 | 입력 검증, 금기어 필터, LangGraph, 응답 검증 |
 | rag-mcp | 8001 | pgvector 검색, CSV/XLSX 기업 문서 처리, 실제 MCP |
-| business-mcp | 8002 | Tavily 외부검색 HTTP Tool, 상세는 별도 가이드 |
+| business-mcp | 8002 | Tavily 외부검색 MCP·HTTP, 상세는 별도 가이드 |
 | pgvector | 5433 | PostgreSQL 18 / vector(384), 기업별 문서·chunk 저장 |
 
 `rag-mcp`는 실제 MCP `/mcp`와 검색·문서 관리 REST API를 제공합니다.
@@ -211,7 +211,7 @@ Mock / 미구현:
 - RAG 적재·검색과 Agent 노드 연결 구현됨. 로컬 기본 설정은 오프라인이며 Compose는 실제 검색 활성화
 - LLM 판단: API 호출 없이 근거 부족과 불확실을 설정
 - 대안 생성: 분기와 TODO만 존재하며 실제 suggestion 생성 없음
-- RAG의 MCP는 구현됨. Business 외부검색은 별도 Business 가이드 참조
+- RAG·Business MCP 서버 구현됨. Business의 Agent client는 아직 HTTP 사용
 - Output Validator: 현재는 schema만 검사; 근거 출처 / 인용 검증은 후속 작업
 
 규칙 hit를 실제 근거처럼 꾸미지 않아 현재 API의 `findings`는 비어 있습니다.
@@ -285,7 +285,7 @@ python -m ruff format --check .
 - 두 검색 Tool의 Agent 노드 연결 및 문서별 검색 범위 계약 확정
 - RAG MCP 서버·client 구현 완료, 운영 연결 설정 확인
 - Agent retrieval node에 client lifecycle / 설정 / timeout 주입
-- 외부검색은 후속 범위 확정 후 구현하며 현재는 보류
+- Tavily 외부검색 MCP·HTTP 구현 완료. 검색어 생성·호출 정책 및 Agent MCP client 연결은 파트 1 후속 작업
 
 참고한 LangGraph API: [StateGraph 공식 문서](https://reference.langchain.com/python/langgraph/graph/state/StateGraph).
 벡터 저장소: [pgvector 공식 문서](https://github.com/pgvector/pgvector).
