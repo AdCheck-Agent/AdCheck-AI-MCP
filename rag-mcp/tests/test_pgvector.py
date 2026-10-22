@@ -76,3 +76,37 @@ async def test_missing_delete_get_are_404(db_store):
     assert error.value.status == 404
     with pytest.raises(DocumentError):
         await db_store.delete("test_a", "missing")
+
+
+async def test_selected_documents_filter_before_top_k_and_keep_tenant_scope(db_store, embeddings):
+    for company, doc_id, content in (
+        ("test_a", "selected", "인권 노동 존중"),
+        ("test_a", "unselected", "인권"),
+        ("test_b", "selected", "인권"),
+        ("test_b", "other_company_only", "인권"),
+    ):
+        row = policy(company, content).model_copy(update={"document_id": doc_id})
+        await db_store.replace(await corporate_document([row], embeddings))
+
+    found = await db_store.search(
+        "인권", collection="corporate", company_id="test_a", document_ids=["selected"], top_k=1
+    )
+    assert len(found) == 1
+    assert found[0].document_id == "selected" and found[0].company_id == "test_a"
+    for ids in (["missing"], ["other_company_only"]):
+        assert (
+            await db_store.search(
+                "인권", collection="corporate", company_id="test_a", document_ids=ids
+            )
+            == []
+        )
+    both = await db_store.search(
+        "인권",
+        collection="corporate",
+        company_id="test_a",
+        document_ids=["selected", "unselected"],
+    )
+    assert {e.document_id for e in both} == {"selected", "unselected"}
+    assert all(e.company_id == "test_a" for e in both)
+    with pytest.raises(DocumentError):
+        await db_store.search("인권", collection="corporate", company_id="test_a", document_ids=[])

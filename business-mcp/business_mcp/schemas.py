@@ -25,5 +25,6 @@ class RecentIssue(BaseModel):
 class SearchResult(BaseModel):
     status: SearchStatus
     results: list[RecentIssue] = Field(default_factory=list)
+    related_criteria: list[str] = Field(default_factory=list)
     mock: bool = False
     message: str

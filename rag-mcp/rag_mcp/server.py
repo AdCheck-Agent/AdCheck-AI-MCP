@@ -87,6 +87,7 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
             payload.top_k,
             payload.min_score,
             payload.include_synthetic,
+            payload.document_ids,
         )
 
     @mcp.tool(name="search_social_context")
@@ -101,8 +102,9 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
         top_k: int = 5,
         min_score: float = 0.0,
         include_synthetic: bool = False,
+        document_ids: list[str] | None = None,
     ) -> SearchResult:
-        """Search only this company's uploaded documents; demo policies are excluded by default."""
+        """For attached files, pass their document_ids. Demo files need include_synthetic=true."""
         return await corporate(
             CorporateQuery(
                 query=query,
@@ -110,6 +112,7 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
                 top_k=top_k,
                 min_score=min_score,
                 include_synthetic=include_synthetic,
+                document_ids=document_ids,
             )
         )
 

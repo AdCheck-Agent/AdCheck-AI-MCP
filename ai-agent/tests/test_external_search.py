@@ -20,6 +20,7 @@ class FakeBusinessTools:
             status=self.status,
             mock=False,
             message="테스트 결과",
+            related_criteria=["외부 파트너 논란 확인"] if self.status == "ok" else [],
             results=[
                 RecentIssue(
                     title="합성 결과",
@@ -64,6 +65,9 @@ async def test_graph_search_once_and_no_automatic_pass(
     assert result["external_search_result"].status == status
     if status == "ok":
         assert str(result["external_evidence"][0].url) == "https://example.com/1"
+        assert result["external_search_result"].related_criteria == ["외부 파트너 논란 확인"]
+    else:
+        assert result["external_search_result"].related_criteria == []
 
 
 @pytest.mark.parametrize("sufficient, query", [(True, "최근 이슈"), (False, None), (False, " ")])

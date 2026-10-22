@@ -4,6 +4,10 @@
 광고 검수 입력은 기존 Agent의 JSON `text`입니다. PDF·이미지·DOCX 업로드는 지원하지 않습니다.
 이 서비스에는 실제 pgvector 검색과 MCP Tool이 있으며 최종 LLM 판정은 Agent 담당 범위입니다.
 
+MVP에서는 현재 사회·역사 문서 묶음을 고정 기준으로 사용합니다. 사회 문서 수정·폐기
+워크플로우 개발은 이번 범위에 포함하지 않습니다. 기업 문서는 검수 시 첨부한 데모 파일만 검색합니다.
+파트 2는 검색 결과의 반환·state 보존까지 담당하고, MCP 호출 흐름과 최종 판단은 파트 1 담당입니다.
+
 ## 1. 기업 문서 형식
 
 파일 하나는 기업 하나의 문서 하나입니다. 첫 행은 아래 영문 헤더입니다.
@@ -164,10 +168,59 @@ curl -fsS http://localhost:8001/tools/search_corporate_value \
 기업 검색은 company_id 필수, include_synthetic 기본false입니다.
 실제 업로드 정책은 기본 검색에 포함되고, 합성 정책은 명시적으로 true를 줘야 검색됩니다.
 
-응답은 `status: ok|empty`, `mock:false`, `evidence`, `message`입니다.
+### 검수 시 첨부한 파일만 검색하는 데모 연동
+
+데모에서는 저장소의 합성 기업 CSV/XLSX 중 사용자가 이번 검수에 첨부한 파일만 검색합니다.
+BE는 파일별 업로드가 `indexed`로 완료된 뒤, 그 응답의 `document_id` 목록을 검수 요청과 함께
+Agent에 전달해야 합니다. Agent는 기업 검색 REST/MCP 호출에 아래 두 인자를 전달해야 합니다.
+Agent 요청 모델·클라이언트 연결은 AI 파트 1과 합의할 후속 작업이며, 이 변경에는 포함하지 않습니다.
+
+```json
+{
+  "query": "모든 협력업체의 노동환경을 윤리적으로 관리합니다",
+  "company_id": "seojun_roasters",
+  "document_ids": ["seojun_roasters-ethics_policy"],
+  "include_synthetic": true
+}
+```
+
+- `document_ids`: 1~100개, 각 ID는 업로드와 같은 문자 규칙·최대 150자입니다.
+  기업 ID와 문서 ID를 모두 적용한 뒤 유사도 순위와 top-k를 계산합니다.
+- 선택하지 않은 기존 문서는 검색되지 않습니다. 지정 문서가 없거나 다른 기업 소유이면
+  해당 문서는 결과에서 제외하며, 다른 문서로 검색 범위를 넓히지 않습니다.
+- 빈 목록은 REST 422 / MCP Tool 오류입니다. 첨부 파일이 없으면 기업 검색 호출을 생략합니다.
+- 기존 호출과의 호환성을 위해 생략 또는 null은 기업 전체 검색을 유지합니다.
+  **첨부 파일만 검색하는 검수에서는 반드시 document_ids를 전달해야 합니다.**
+- `include_synthetic: true`: 데모 샘플 검색에 필요합니다. 합성 표시는 응답에도 유지합니다.
+  샘플 파일의 `synthetic` 값을 false로 바꾸지 않습니다.
+- 현재 문서 ID는 같은 기업 안에서 교체되는 저장 단위입니다. 같은 ID의 서로 다른 내용을
+  동시에 업로드하는 검수를 구분하려면 검수별 ID·revision 고정 계약을 별도로 정해야 합니다.
+
+응답은 `status: ok|empty`, `mock:false`, `evidence`, `message`, `related_criteria`입니다.
 근거마다 document, section, snippet, rule_id, version, document_id, chunk_id, company_id,
 document_type, record_type, source_urls, source_ids, row_id, synthetic, score를 보존합니다.
 업로드 정책의 rule_id는 해당 row_id입니다. 빈 검색 결과와 검색 실패를 구분합니다.
+
+### 검색 결과 state 보존
+
+| 검색 | 전체 결과를 보관하는 Agent state 필드 |
+|---|---|
+| 사회·역사 | `social_context_result` |
+| 기업 가치 | `corporate_value_result` |
+| 외부검색 | `external_search_result` |
+
+사회·기업 노드는 기존 evidence 목록과 함께 결과 객체 전체를 저장합니다.
+각 결과의 `related_criteria: list[str]`는 FE 초안의 ‘관련 검수 기준’ 태그를 담을 자리입니다.
+현재 검색 서비스는 태그를 생성하지 않으며 기본값 `[]`를 반환합니다. 기존 호출 흐름·판정·분기는
+변경하지 않았습니다. 검색되지 않은 사회·기업 결과는 None이며, 호출 실패는 해당 result의
+`status: error`와 기존 `rag_errors`에 기록합니다. 성공했지만 근거가 없으면 `status: empty`입니다.
+
+태그 생성 담당은 미확정입니다. 파트 1이 실제 광고 문맥과 검색 근거를 함께 읽고 태그를 작성한 뒤,
+state 및 최종 FE 응답에 연결하는 방안을 제안합니다. 검색되었다는 사실만으로 적용 기준이나
+위반 여부를 확정하지 않습니다. FE HTML의 키워드 판정 규칙은 구현에 가져오지 않았습니다.
+최종 사용자 API의 Evidence 모델 확장·태그 노출은 별도 파트 1 작업입니다.
+
+오늘 작업 및 전달 사항: [2026-10-22 작업 기록](../docs/2026-10-22-rag-mcp-handoff.md).
 
 실제 MCP endpoint는 `http://localhost:8001/mcp`이며 SDK v1.30.0의 Streamable HTTP를 사용합니다.
 Tool: `search_social_context`, `search_corporate_value`.
@@ -220,7 +273,7 @@ RAG_TEST_DATABASE_URL=postgresql://adcheck:adcheck@localhost:5433/adcheck_rag_te
 - 문서 유형 코드 3개, 기업·문서 ID, 원본 파일 보관과 접근 권한
 - 업로드 요청 timeout과 indexed/실패 상태 표시
 - 문서 수정 때 같은 document_id로 교체할지 별도 이력을 남길지
-- 현재 검색은 해당 기업의 저장된 문서를 검색함. 검수별 선택 문서만 검색하려면 document_ids 계약을 추가해야 함
+- 검수에 첨부한 파일의 document_ids 전달과 데모용 include_synthetic=true를 BE·Agent에 연결
 - 현재 pgvector는 AI 개발용 독립 DB. BE PostgreSQL과 합칠 때 접속·권한·migration 소유권 결정
 
 금기어 RDB·LLM 최종 판정·Frontend는 이 변경에서 구현하지 않습니다.
