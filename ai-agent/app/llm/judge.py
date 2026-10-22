@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError
 from app.graph.nodes.rule_filter import normalize
 from app.graph.state import ReviewState
 from app.llm.client import ReviewModel
+from app.llm.evidence import to_evidence
 from app.schemas.review import Category, Evidence, Finding, Severity
 
 logger = logging.getLogger(__name__)
@@ -32,7 +33,10 @@ evidence_sufficient=false 또는 risk="uncertain"으로 답하세요.
 pass는 최종 게시 승인이 아닙니다.
 7. 역사·사회 키워드가 있다는 이유만으로 위험하다고 단정하지 마세요. \
 날짜, 행사명, 상징을 함께 보세요.
-8. 응답은 JSON 객체 하나만 출력하세요. 설명 문장이나 코드 블록을 붙이지 마세요.
+8. 근거가 부족한데 최근 공개 사실을 웹에서 확인하면 판단할 수 있을 때만 \
+external_search_query에 검색어 한 줄을 쓰세요. 광고 문구 전체나 개인정보를 넣지 말고, \
+필요 없으면 null로 두세요.
+9. 응답은 JSON 객체 하나만 출력하세요. 설명 문장이나 코드 블록을 붙이지 마세요.
 """
 
 OUTPUT_FORMAT = """\
@@ -41,6 +45,7 @@ OUTPUT_FORMAT = """\
   "risk": "yes | no | uncertain",
   "evidence_sufficient": true | false,
   "summary": "검수 결과 한 문장",
+  "external_search_query": "공개 사실 확인용 검색어 한 줄 또는 null",
   "findings": [
     {
       "category": "historical_context | korea_japan_history | social_issue | fear_and_anxiety | \
@@ -72,6 +77,7 @@ class Judgment(BaseModel):
     evidence_sufficient: bool
     summary: str = Field(min_length=1)
     findings: list[JudgedFinding] = Field(default_factory=list)
+    external_search_query: str | None = None
 
 
 @dataclass(frozen=True)
@@ -87,7 +93,7 @@ def build_catalog(state: ReviewState) -> list[CatalogItem]:
         ("E", state["external_evidence"]),
     )
     return [
-        CatalogItem(f"{prefix}{index}", evidence)
+        CatalogItem(f"{prefix}{index}", to_evidence(evidence))
         for prefix, items in sources
         for index, evidence in enumerate(items, start=1)
     ]
@@ -200,3 +206,14 @@ def _no_evidence_summary(state: ReviewState) -> str:
 def _held_hit_summary(state: ReviewState, model_summary: str) -> str:
     terms = ", ".join(h.expression for h in state["rule_hits"])
     return f"금기어({terms})가 탐지되어 사람 검토가 필요합니다. 모델 판단: {model_summary}"
+
+
+MAX_QUERY_CHARS = 400
+
+
+def external_query(judgment: Judgment, state: ReviewState, result: dict) -> str | None:
+    """A search query is allowed once, and only while the evidence is still insufficient."""
+    if result.get("evidence_sufficient") or state["external_search_attempted"]:
+        return None
+    query = " ".join((judgment.external_search_query or "").split())
+    return query if 0 < len(query) <= MAX_QUERY_CHARS else None

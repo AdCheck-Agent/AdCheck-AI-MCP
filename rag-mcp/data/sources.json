@@ -1,0 +1,126 @@
+{
+  "version": "v1",
+  "checked_at": "2026-10-22",
+  "sources": [
+    {
+      "source_id": "SRC-MPVA-518",
+      "publisher": "국가보훈부 국립5·18민주묘지",
+      "title": "5·18민주화운동 소개",
+      "url": "https://www.mpva.go.kr/518/contents.do?key=417",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "institutional_history",
+      "verification_scope": "1980년 5월 광주 민주화운동의 역사적 배경. 광고 위반 판단 자료가 아님."
+    },
+    {
+      "source_id": "SRC-KDEMO-PARK",
+      "publisher": "민주화운동기념사업회 오픈아카이브",
+      "title": "박종철의 죽음을 부른 수사계획",
+      "url": "https://archives.kdemo.or.kr/contents/view/316",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "institutional_archive",
+      "verification_scope": "1987년 1월 14일 연행·고문 사건의 역사적 맥락."
+    },
+    {
+      "source_id": "SRC-ARCHIVES-625",
+      "publisher": "국가기록원",
+      "title": "6·25전쟁의 진행 과정: 전선의 변화",
+      "url": "https://theme.archives.go.kr/next/625/process/frontline.do",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "institutional_history",
+      "verification_scope": "1950년 6월 25일 전쟁 발발 배경. 광고 사례 자체를 입증하지 않음."
+    },
+    {
+      "source_id": "SRC-JNILBO-STARBUCKS",
+      "publisher": "전남일보 / 다음뉴스",
+      "title": "5·18에 탱크데이? 스타벅스 프로모션 수정",
+      "url": "https://v.daum.net/v/20260518145300421",
+      "published_at": "2026-05-18",
+      "accessed_at": "2026-10-22",
+      "source_type": "news_report",
+      "verification_scope": "행사일·두 표현·페이지 삭제·수정·회사 사과 보도. 기업 의도·매출 영향은 검증하지 않음."
+    },
+    {
+      "source_id": "SRC-FN-ISOI",
+      "publisher": "파이낸셜뉴스",
+      "title": "625%·침투 광고 논란과 대표 명의 2차 사과",
+      "url": "https://busan.fnnews.com/news/202606301317329936",
+      "published_at": "2026-06-30",
+      "accessed_at": "2026-10-22",
+      "source_type": "news_report",
+      "verification_scope": "2026년 사과 보도와 회사가 밝힌 2025년 10월 광고 집행 설명. 시험 결과의 독립 검증 자료가 아님."
+    },
+    {
+      "source_id": "SRC-MBN-MUSINSA",
+      "publisher": "MBN / 다음뉴스",
+      "title": "무신사의 2019년 광고에 대한 2026년 재사과 보도",
+      "url": "https://v.daum.net/v/3Tvd1GOcI1",
+      "published_at": "2026-05-20",
+      "accessed_at": "2026-10-22",
+      "source_type": "news_report",
+      "verification_scope": "2019년 광고 문구와 2026년 재사과 보도. 본문을 복제·학습 데이터로 수집하지 않음."
+    },
+    {
+      "source_id": "SRC-NEWSPIM-NENE",
+      "publisher": "뉴스핌",
+      "title": "네네치킨 합성사진 게시와 사과 보도",
+      "url": "https://www.newspim.com/news/view/20150702000388",
+      "published_at": "2015-07-02",
+      "accessed_at": "2026-10-22",
+      "source_type": "news_report",
+      "verification_scope": "2015년 7월 1일 지사 페이스북 게시 및 사과. 특정 커뮤니티 소속·위법 판결은 확인하지 않음."
+    },
+    {
+      "source_id": "SRC-DONGA-MILK",
+      "publisher": "동아일보",
+      "title": "서울우유 광고 여성 혐오 논란 보도",
+      "url": "https://www.donga.com/news/Economy/article/all/20211209/110687520/1",
+      "published_at": "2021-12-09",
+      "accessed_at": "2026-10-22",
+      "source_type": "news_report",
+      "verification_scope": "11월 29일 공개 영상의 남녀 모델·변신·촬영 연출과 삭제·사과 보도."
+    },
+    {
+      "source_id": "SRC-ASA-GENDER",
+      "publisher": "ASA / CAP",
+      "title": "Gender stereotyping – Lessons one year on",
+      "url": "https://www.asa.org.uk/news/gender-stereotyping-lessons-one-year-on.html",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "regulator_guidance",
+      "verification_scope": "2019년 8월 14일 Mondelez 판단을 소개한 해설. 영국 적용 범위이며 한국 법률로 전용하지 않음."
+    },
+    {
+      "source_id": "SRC-ASA-CHILD",
+      "publisher": "ASA / CAP",
+      "title": "Children: Sexual imagery",
+      "url": "https://www.asa.org.uk/advice-online/children-sexual-imagery.html",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "regulator_guidance",
+      "verification_scope": "미성년자 묘사와 이미지·텍스트 결합 맥락 관련 영국 안내. 국내 판정 자료로 동일시하지 않음."
+    },
+    {
+      "source_id": "SRC-ILO-RIGHTS",
+      "publisher": "International Labour Organization",
+      "title": "Fundamental Principles and Rights at Work",
+      "url": "https://www.ilo.org/topics-and-sectors/fundamental-principles-and-rights-work",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "institutional_principles",
+      "verification_scope": "기본 노동권의 다섯 영역. 특정 회사·공급망의 이행 사실을 입증하지 않음."
+    },
+    {
+      "source_id": "SRC-ICC-CODE",
+      "publisher": "International Chamber of Commerce",
+      "title": "ICC Advertising and Marketing Communications Code, 2024",
+      "url": "https://iccwbo.org/business-solutions/the-icc-advertising-and-marketing-communications-code/",
+      "published_at": null,
+      "accessed_at": "2026-10-22",
+      "source_type": "self_regulatory_reference",
+      "verification_scope": "2024년 코드 Article 2의 인간 존엄·차별 관련 원칙을 개괄 참조. 공식 번역·전체 텍스트 복제 없음."
+    }
+  ]
+}

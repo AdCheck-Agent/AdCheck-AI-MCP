@@ -6,6 +6,7 @@ from app.llm.judge import (
     build_catalog,
     build_user_prompt,
     call_model,
+    external_query,
     needs_review,
     resolve,
 )
@@ -16,13 +17,24 @@ def review_llm(state: ReviewState) -> dict:
 
     Rule hits are hints, never verdicts. The model always runs when configured; code guards
     then force needs_review when evidence is missing, so no evidence or quote is invented.
+    When evidence is still short, the model may ask for one external search; the graph runs it
+    and calls this node again with the result.
     """
     model = get_review_model()
     if model is None:
         return needs_review(MOCK_SUMMARY)
 
+    if any(code.endswith("_FAILED") for code in state["rag_errors"]):
+        # A broken search service is not "no evidence"; do not spend a model call guessing.
+        return needs_review("검색 서비스 오류로 근거를 확인하지 못해 사람 검토가 필요합니다.")
+
     catalog = build_catalog(state)
     judgment = call_model(model, SYSTEM_PROMPT, build_user_prompt(state, catalog))
     if judgment is None:
         return needs_review("모델 판단을 얻지 못해 사람 검토가 필요합니다.")
-    return resolve(judgment, state, catalog)
+
+    result = resolve(judgment, state, catalog)
+    query = external_query(judgment, state, result)
+    if query:
+        result["external_search_query"] = query
+    return result

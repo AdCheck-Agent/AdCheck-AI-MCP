@@ -1,4 +1,4 @@
-from typing import Literal
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -24,6 +24,11 @@ class ReviewContext(InputModel):
     channel: Literal["sns"]
     campaign_name: str | None = Field(default=None, max_length=100)
     company_id: str | None = Field(default=None, min_length=1, max_length=100)
+    # Files attached to this review; RAG returns every chunk of these documents.
+    document_ids: (
+        list[Annotated[str, Field(min_length=1, max_length=150, pattern=r"^[A-Za-z0-9_.:-]+$")]]
+        | None
+    ) = Field(default=None, min_length=1, max_length=100)
 
 
 class ReviewRequest(InputModel):

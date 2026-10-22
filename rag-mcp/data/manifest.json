@@ -1,0 +1,157 @@
+{
+  "version": "v1",
+  "ingestion_implemented": true,
+  "policy": "ingest-social indexes only social entries. Corporate samples are opt-in CSV uploads; XLSX is the equivalent alternate, never a duplicate source.",
+  "documents": [
+    {
+      "path": "social/cases/asa_gender_2019.md",
+      "document_id": "case-asa-gender-2019",
+      "rule_id": "CASE-DISC-002",
+      "record_type": "reported_case",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/cases/isoi_2025_2026.md",
+      "document_id": "case-isoi-2025-2026",
+      "rule_id": "CASE-HIST-002",
+      "record_type": "reported_case",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/cases/musinsa_2019.md",
+      "document_id": "case-musinsa-2019",
+      "rule_id": "CASE-HIST-003",
+      "record_type": "reported_case",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/cases/nene_2015.md",
+      "document_id": "case-nene-2015",
+      "rule_id": "CASE-DIGNITY-001",
+      "record_type": "reported_case",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/cases/seoul_milk_2021.md",
+      "document_id": "case-seoul-milk-2021",
+      "rule_id": "CASE-DISC-001",
+      "record_type": "reported_case",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/cases/starbucks_2026.md",
+      "document_id": "case-starbucks-2026",
+      "rule_id": "CASE-HIST-001",
+      "record_type": "reported_case",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/criteria/children_and_advertising.md",
+      "document_id": "social-children-advertising",
+      "rule_id": "RULE-CHILD-001",
+      "record_type": "project_guideline",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/criteria/context_and_uncertainty.md",
+      "document_id": "social-context-uncertainty",
+      "rule_id": "RULE-CONTEXT-001",
+      "record_type": "project_guideline",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/criteria/dignity_and_distress.md",
+      "document_id": "social-dignity-distress",
+      "rule_id": "RULE-DIGNITY-001",
+      "record_type": "project_guideline",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/criteria/gender_and_objectification.md",
+      "document_id": "social-gender-objectification",
+      "rule_id": "RULE-DISC-001",
+      "record_type": "project_guideline",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/criteria/historical_context.md",
+      "document_id": "social-historical-context",
+      "rule_id": "RULE-HIST-001",
+      "record_type": "project_guideline",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "social/criteria/labor_and_human_rights.md",
+      "document_id": "social-labor-human-rights",
+      "rule_id": "RULE-LABOR-001",
+      "record_type": "project_guideline",
+      "company_id": null,
+      "corpus": "social"
+    },
+    {
+      "path": "corporate/seojun_roasters/corporate_values.csv",
+      "alternate_path": "corporate/seojun_roasters/corporate_values.xlsx",
+      "document_id": "seojun_roasters-corporate_values",
+      "record_type": "uploaded_company_document",
+      "company_id": "seojun_roasters",
+      "document_type": "corporate_values",
+      "corpus": "corporate_demo"
+    },
+    {
+      "path": "corporate/seojun_roasters/ethics_policy.csv",
+      "alternate_path": "corporate/seojun_roasters/ethics_policy.xlsx",
+      "document_id": "seojun_roasters-ethics_policy",
+      "record_type": "uploaded_company_document",
+      "company_id": "seojun_roasters",
+      "document_type": "ethics_policy",
+      "corpus": "corporate_demo"
+    },
+    {
+      "path": "corporate/seojun_roasters/sustainability_report.csv",
+      "alternate_path": "corporate/seojun_roasters/sustainability_report.xlsx",
+      "document_id": "seojun_roasters-sustainability_report",
+      "record_type": "uploaded_company_document",
+      "company_id": "seojun_roasters",
+      "document_type": "sustainability_report",
+      "corpus": "corporate_demo"
+    },
+    {
+      "path": "corporate/taegeon_beauty/corporate_values.csv",
+      "alternate_path": "corporate/taegeon_beauty/corporate_values.xlsx",
+      "document_id": "taegeon_beauty-corporate_values",
+      "record_type": "uploaded_company_document",
+      "company_id": "taegeon_beauty",
+      "document_type": "corporate_values",
+      "corpus": "corporate_demo"
+    },
+    {
+      "path": "corporate/taegeon_beauty/ethics_policy.csv",
+      "alternate_path": "corporate/taegeon_beauty/ethics_policy.xlsx",
+      "document_id": "taegeon_beauty-ethics_policy",
+      "record_type": "uploaded_company_document",
+      "company_id": "taegeon_beauty",
+      "document_type": "ethics_policy",
+      "corpus": "corporate_demo"
+    },
+    {
+      "path": "corporate/taegeon_beauty/sustainability_report.csv",
+      "alternate_path": "corporate/taegeon_beauty/sustainability_report.xlsx",
+      "document_id": "taegeon_beauty-sustainability_report",
+      "record_type": "uploaded_company_document",
+      "company_id": "taegeon_beauty",
+      "document_type": "sustainability_report",
+      "corpus": "corporate_demo"
+    }
+  ]
+}

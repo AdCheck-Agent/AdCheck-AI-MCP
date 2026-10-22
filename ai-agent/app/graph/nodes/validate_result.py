@@ -2,6 +2,7 @@ import logging
 
 from app.graph.nodes.rule_filter import normalize
 from app.graph.state import ReviewState
+from app.llm.evidence import to_evidence
 from app.schemas.review import Evidence, Finding, ReviewResponse
 
 logger = logging.getLogger(__name__)
@@ -19,7 +20,7 @@ def _retrieved_keys(state: ReviewState) -> set[tuple[str, str, str]]:
         state["corporate_value_evidence"],
         state["external_evidence"],
     )
-    return {_key(e) for evidences in sources for e in evidences}
+    return {_key(to_evidence(e)) for evidences in sources for e in evidences}
 
 
 def _check_finding(

@@ -12,8 +12,8 @@ class Settings(BaseSettings):
 
     ai_agent_port: int = Field(default=8000, ge=1, le=65535)
     rag_mcp_url: HttpUrl = HttpUrl("http://localhost:8001")
+    rag_retrieval_enabled: bool = False
     business_mcp_url: HttpUrl = HttpUrl("http://localhost:8002")
-    qdrant_url: HttpUrl = HttpUrl("http://localhost:6333")
     http_timeout_seconds: float = Field(default=10, gt=0)
     review_timeout_seconds: float = Field(default=60, gt=0)
     log_level: str = "INFO"
