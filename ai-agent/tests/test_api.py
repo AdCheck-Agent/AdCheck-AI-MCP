@@ -71,3 +71,42 @@ def test_finding_schema() -> None:
         }
     )
     assert result.findings[0].evidence[0].document == "테스트 전용 문서"
+
+
+class SlowGraph:
+    async def ainvoke(self, state: dict) -> dict:
+        import asyncio
+
+        await asyncio.sleep(5)
+        return state
+
+
+class BrokenGraph:
+    async def ainvoke(self, state: dict) -> dict:
+        raise RuntimeError("boom")
+
+
+PAYLOAD = {"text": "새로운 상품을 소개합니다", "context": {"channel": "sns"}}
+
+
+def test_timeout_returns_504_with_trace_id(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("REVIEW_TIMEOUT_SECONDS", "0.05")
+    from app.core.config import get_settings
+
+    get_settings.cache_clear()
+    with TestClient(app) as client:
+        app.state.review_graph = SlowGraph()
+        response = client.post("/api/v1/reviews", json=PAYLOAD)
+    assert response.status_code == 504
+    detail = response.json()["detail"]
+    assert detail["code"] == "review_timeout"
+    assert detail["trace_id"].startswith("trace_")
+
+
+def test_unexpected_failure_returns_500_without_internals() -> None:
+    with TestClient(app) as client:
+        app.state.review_graph = BrokenGraph()
+        response = client.post("/api/v1/reviews", json=PAYLOAD)
+    assert response.status_code == 500
+    assert response.json()["detail"]["code"] == "review_failed"
+    assert "boom" not in response.text
