@@ -1,11 +1,10 @@
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
 
-import httpx
 from fastapi import FastAPI
 
 from app.api.routes import health, review
-from app.clients.business_mcp_client import BusinessMCPClient
+from app.clients.business_mcp_client import BusinessMCPTransportClient
 from app.clients.rag_mcp_client import RagMCPTransportClient
 from app.core.config import get_settings
 from app.core.logging import configure_logging
@@ -29,16 +28,13 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         else None
     )
 
-    async with httpx.AsyncClient(
-        base_url=str(settings.business_mcp_url),
-        timeout=5,
-        transport=httpx.AsyncHTTPTransport(retries=0),
-    ) as http:
-        application.state.review_graph = build_graph(
-            business_tools=BusinessMCPClient(http),
-            rag_tools=rag_tools,
-        )
-        yield
+    application.state.review_graph = build_graph(
+        business_tools=BusinessMCPTransportClient(
+            str(settings.business_mcp_url).rstrip("/") + "/mcp", timeout=5
+        ),
+        rag_tools=rag_tools,
+    )
+    yield
 
 
 app = FastAPI(title="AdCheck AI Agent", version="0.1.0", lifespan=lifespan)

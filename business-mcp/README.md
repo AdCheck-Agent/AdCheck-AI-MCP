@@ -2,7 +2,7 @@
 
 Business 서비스는 Tavily Search API를 호출하고, 실제 MCP와 기존 HTTP API를 함께 제공합니다.
 MCP SDK v1.30.0의 Streamable HTTP를 사용하며 두 경로는 같은 검색 함수를 호출합니다.
-Agent는 아직 기존 HTTP adapter를 사용합니다. MCP client 전환은 파트 1 연결 작업입니다.
+Agent는 `BusinessMCPTransportClient`로 MCP Tool을 호출합니다. 기존 HTTP adapter(`BusinessMCPClient`)는 진단용으로 남겨 두었습니다.
 
 ## 적용한 제한
 
