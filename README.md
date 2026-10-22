@@ -1,10 +1,10 @@
 # AdCheck AI MCP
 
-SNS 광고 문구의 사회·역사적 논란 가능성을 검토하는 AI 서비스의 초기 골격입니다.
+SNS 광고 문구의 사회·역사적 논란 가능성과 기업 가치와의 불일치를 검토하는 AI 서비스입니다.
 Python 3.12, FastAPI, Pydantic v2, LangGraph, httpx를 사용하며, venv + pip로 환경을 관리합니다.
 Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 포함하지 않습니다.
 
-**RAG 서비스의 실제 적재·검색은 구현됐으며, Agent는 설정에 따라 실제 RAG를 호출하고, LLM 판정은 아직 mock입니다.** API key 없이 실행되며, 검수 API는
+**RAG 적재·검색과 Business 외부검색은 실제로 동작하고, Agent는 설정에 따라 실제 RAG를 호출합니다. LLM 판정은 아직 mock입니다.** API key 없이 실행되며, 검수 API는
 `[MOCK]` 요약과 `needs_review`를 반환합니다. 근거가 없는 상태에서 통과나 위반을 확정하지 않습니다.
 
 ## 서비스 구성
@@ -38,30 +38,38 @@ Compose에서는 Agent의 실제 MCP 검색이 켜집니다. 로컬은 RAG_RETRI
 │   │   │       ├── rule_filter.py
 │   │   │       ├── retrieve_social_context.py
 │   │   │       ├── retrieve_corporate_value.py
+│   │   │       ├── retrieve_external_evidence.py
 │   │   │       ├── review_llm.py
 │   │   │       ├── generate_alternative.py
 │   │   │       ├── decide_result.py
 │   │   │       └── validate_result.py
 │   │   ├── clients/{rag_mcp_client,business_mcp_client}.py
 │   │   └── rules/banned_expressions.json
-│   ├── tests/{test_api,test_rules,test_graph}.py
+│   ├── tests/{test_api,test_rules,test_graph,test_rag_nodes,test_external_search}.py
 │   └── Dockerfile
 ├── rag-mcp/
 │   ├── rag_mcp/
 │   │   ├── server.py
 │   │   ├── schemas.py
+│   │   ├── documents.py   # CSV/XLSX·사회 문서 해석과 분할
+│   │   ├── cli.py         # init-db, ingest-social
+│   │   ├── evaluation.py  # 실제 임베딩 검색 품질 평가
+│   │   ├── schema.sql
 │   │   ├── tools/{search_social_context,search_corporate_value}.py
 │   │   └── retrieval/{vector_store,embeddings}.py
 │   ├── data/  # 사회 기준·사례, 두 기업 문서, 출처·적재 목록
-│   ├── tests/test_rag_service.py
+│   ├── tests/  # 문서·pgvector·MCP·평가·서비스 테스트
 │   └── Dockerfile
 ├── business-mcp/
 │   ├── business_mcp/
 │   │   ├── server.py
 │   │   ├── schemas.py
+│   │   ├── config.py
+│   │   ├── clients/tavily_client.py
 │   │   └── tools/search_recent_issue.py
-│   ├── tests/test_business_service.py
+│   ├── tests/{test_business_service,test_tavily_client,test_mcp_transport}.py
 │   └── Dockerfile
+├── docs/  # 작업 기록·파트 1 전달 사항·검색 평가 결과
 ├── docker-compose.yml
 ├── pyproject.toml
 ├── requirements.txt
@@ -82,7 +90,7 @@ Python 3.12를 먼저 설치한 뒤 저장소 루트에서 실행합니다.
 `.python-version`은 버전 안내 파일이며 venv가 Python을 자동 설치하지는 않습니다.
 
 ```bash
-cd ~/Desktop/skala-projects/AI-Mini-Project/AdCheck-AI-MCP
+cd AdCheck-AI-MCP  # 저장소를 받은 위치에서
 python3.12 -m venv .venv
 source .venv/bin/activate
 python -m pip install -r requirements-dev.txt
@@ -95,14 +103,17 @@ cp -n .env.example .env
 새 터미널마다 저장소 루트에서 `source .venv/bin/activate`를 실행하세요.
 환경을 종료할 때는 `deactivate`를 사용합니다.
 
-`.env`는 Git과 Docker build context에서 제외됩니다. API key 설정은 없습니다.
+`.env`는 Git과 Docker build context에서 제외됩니다.
+API key는 Business 외부검색의 `TAVILY_API_KEY`만 사용하며, 비워 두면 외부검색이 `unavailable`을 반환합니다.
 로컬 `.env`의 URL은 `localhost`이며, Compose는 컨테이너 통신 URL을 서비스명으로 덮어씁니다.
-`HTTP_TIMEOUT_SECONDS`는 향후 HTTP client 생성 시 사용할 설정입니다.
-`RAG_DATABASE_URL`은 RAG 서비스의 pgvector 접속 설정입니다.
+`HTTP_TIMEOUT_SECONDS`는 Agent의 RAG MCP 호출 timeout입니다.
+`RAG_DATABASE_URL`은 RAG 서비스의 pgvector 접속 설정입니다. 전체 변수는 [가이드](guide.md) 9장을 참고하세요.
 
 ## 로컬 실행
 
 저장소 루트에서 각각 별도의 터미널로 실행합니다.
+RAG는 pgvector DB와 사회 문서 적재가 먼저 필요합니다([RAG 가이드](rag-mcp/README.md) 3장).
+Agent가 실제 RAG를 호출하게 하려면 `.env`의 `RAG_RETRIEVAL_ENABLED=true`로 설정합니다.
 
 ```bash
 PYTHONPATH=ai-agent python -m app.main
@@ -192,6 +203,8 @@ RDB에 저장한다고 반드시 MCP로 옮길 필요는 없습니다. 데이터
 
 ```text
 START → rule_filter → retrieve_social_context → retrieve_corporate_value → review_llm
+  ├─ RAG 검색 실패 → mark_needs_review
+  ├─ 근거 부족 + 판정 노드의 검색어 있음 + 외부검색 미시도 → external_search → review_llm (재판정)
   ├─ 근거 부족 / 불확실 → mark_needs_review
   ├─ 근거 충분 + 위험 있음 → generate_alternative (revise)
   └─ 근거 충분 + 위험 없음 → mark_pass
@@ -205,7 +218,8 @@ START → rule_filter → retrieve_social_context → retrieve_corporate_value �
 - 규칙 필터는 hit만 반환하며 최종 판정은 하지 않음
 - 요청별 상태 / trace_id, LangGraph compile 및 sync / async 실행
 - 최소 로그에는 trace_id와 상태만 기록
-- Retriever / Embeddings Protocol, HTTP Tool 함수와 클라이언트 인터페이스
+- RAG: pgvector 검색, 기업 격리, 첨부 문서 전체 반환, MCP `/mcp`, Agent의 RAG MCP client
+- Business: Tavily 외부검색 MCP `/mcp`·HTTP, 검수당 1회 외부검색 분기
 - Dockerfile 3개와 PostgreSQL 18 pgvector 이미지를 사용하는 Compose
 
 Mock / 미구현:
@@ -260,15 +274,13 @@ python -m ruff format --check .
 실제 LLM / 외부 API를 호출하지 않습니다. API 입력·응답, JSON 규칙,
 그래프 모든 결과 분기와 END 도달, Tool / client 계약을 검증합니다.
 
-초기 세팅 확인 결과:
+DB 통합 테스트는 `RAG_TEST_DATABASE_URL`에 `_test`로 끝나는 전용 DB를 지정해야 실행됩니다([RAG 가이드](rag-mcp/README.md) 8장).
 
-- Python 3.12 venv + pip 환경, requirements 파일로 의존성 설치
-- pytest: 26개 통과
-- Ruff lint / format 검사 통과
-- Docker Compose config 검증 완료
-- Docker Compose build / up 완료, 서비스 4개 실행 확인
-- 컨테이너 간 HTTP 통신: Agent / RAG / Business health 및 Qdrant healthz 모두 200
-- 실제 실행 중인 Agent의 `POST /api/v1/reviews`: 200, mock `needs_review` 응답 확인
+최근 확인 결과 (2026-10-23):
+
+- pytest 118개 통과 (전용 test DB 포함. DB 없이 실행하면 110개 통과·8개 건너뜀), Ruff lint 통과
+- 실제 임베딩 검색 평가: hit@5 0.90, 기업 격리 위반 0건
+- Docker Compose `up --build`: 4개 서비스 healthy, 사회 문서 적재·기업 문서 업로드, Agent 검수 요청 → RAG MCP → pgvector 확인
 
 ## 다음 작업 / 담당 제안
 
@@ -282,12 +294,10 @@ python -m ruff format --check .
 
 **AI 2 — 데이터 / 검색 / MCP**
 
-- 기업 문서 / 공개 기준 데이터와 출처·버전 메타데이터 설계
-- pgvector 적재·검색과 CSV/XLSX 업로드 구현 완료. 실제 기업 자료 연동과 검색 품질 평가 진행
-- 두 검색 Tool의 Agent 노드 연결 및 문서별 검색 범위 계약 확정
-- RAG MCP 서버·client 구현 완료, 운영 연결 설정 확인
-- Agent retrieval node에 client lifecycle / 설정 / timeout 주입
-- Tavily 외부검색 MCP·HTTP 구현 완료. 검색어 생성·호출 정책 및 Agent MCP client 연결은 파트 1 후속 작업
+- 완료: 기준 데이터·출처·자동 version, pgvector 적재·검색, CSV/XLSX 업로드, RAG MCP 서버·client,
+  Agent 검색 노드 연결, 첨부 문서 전체 반환, 실제 임베딩 검색 평가, Tavily 외부검색 MCP·HTTP
+- 남은 일: 검색 품질 개선, BE의 `document_ids` 전달 연결
+- 파트 1 연결: 외부검색 검색어 생성·호출 정책, Business의 Agent MCP client 전환
 
 참고한 LangGraph API: [StateGraph 공식 문서](https://reference.langchain.com/python/langgraph/graph/state/StateGraph).
 벡터 저장소: [pgvector 공식 문서](https://github.com/pgvector/pgvector).
