@@ -116,10 +116,10 @@ curl -fsS -X PUT \
   "document_id": "taegeon_beauty-corporate_values",
   "document_type": "corporate_values",
   "title": "태건뷰티 기업가치 — 합성",
-  "version": "v1",
+  "version": "v2",
   "synthetic": true,
   "revision": 1,
-  "chunk_count": 3,
+  "chunk_count": 8,
   "status": "indexed"
 }
 ```
@@ -268,6 +268,21 @@ RAG_TEST_DATABASE_URL=postgresql://adcheck:adcheck@localhost:5433/adcheck_rag_te
 일반 테스트는 파일 검증·CSV/XLSX 동등성·사회 manifest 선택을 확인합니다.
 실제 모델·MCP 실행 확인은 별도 smoke 검증으로 구분합니다.
 
+### 검색 품질 평가 (실제 임베딩)
+
+`tests/fixtures/retrieval_cases.json` 문항으로 hit@k·MRR·기업 격리·무관 문구 점수·지연 시간을 측정합니다.
+DB의 RAG 문서를 지우고 사회 문서와 합성 기업 CSV 전체를 다시 적재하므로 `_eval`/`_test` DB만 허용합니다.
+
+```bash
+docker compose exec pgvector createdb -U adcheck adcheck_rag_eval
+PYTHONPATH=rag-mcp python -m rag_mcp.evaluation \
+  --database-url postgresql://adcheck:adcheck@localhost:5433/adcheck_rag_eval \
+  --output docs/eval/retrieval-baseline.json
+```
+
+기준선 결과와 해석: [2026-10-22 검색 평가](../docs/2026-10-22-rag-retrieval-eval.md).
+점수는 관련성 구분 기준으로 쓸 수 없으며, 결과 존재를 근거 충분으로 해석하지 않습니다.
+
 ## 9. Backend와 합의할 범위
 
 - 문서 유형 코드 3개, 기업·문서 ID, 원본 파일 보관과 접근 권한
@@ -286,4 +301,5 @@ Business/Tavily 검색의 기존 작업은 유지합니다.
 - 실제 로컬 임베딩으로 사회 문서 12개 적재·검색 확인
 - CSV/XLSX 업로드·재전송·기업 격리·합성 제외·삭제 smoke 검증 완료
 - 실제 MCP Tool 호출과 Agent 그래프 → MCP → pgvector 연결 확인
-- LLM 판정은 mock이며 검색 정확도의 정량 평가는 아직 수행하지 않음
+- LLM 판정은 mock. 검색 기준선 평가: 23문항 hit@5 0.96, 기업 격리 위반 0건 (합성 문항 기준)
+- 기업가치 샘플 v2(방향성 행 추가) 후 기업 hit@5 0.88. 기업 근거는 첨부 문서 전체(`top_k: 20`)를 판정에 전달 권장

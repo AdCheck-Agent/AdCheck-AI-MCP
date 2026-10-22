@@ -28,7 +28,10 @@ def test_all_samples_have_equivalent_csv_xlsx() -> None:
         xlsx = csv_file.with_suffix(".xlsx")
         rows = parse_policies(csv_file.name, csv_file.read_bytes(), Settings())
         assert rows == parse_policies(xlsx.name, xlsx.read_bytes(), Settings())
-        assert len(rows) == 3 and all(r.synthetic for r in rows)
+        # corporate_values adds brand-direction rows (mission, tone, audience) to the 3 rules.
+        expected = 8 if csv_file.stem == "corporate_values" else 3
+        assert len(rows) == expected and all(r.synthetic for r in rows)
+        assert len({r.version for r in rows}) == 1
 
 
 @pytest.mark.parametrize("extension", ["pdf", "docx", "xls", "txt"])
