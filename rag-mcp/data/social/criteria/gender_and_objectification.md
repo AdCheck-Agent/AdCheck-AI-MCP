@@ -1,12 +1,10 @@
 ---
-document_id: social-gender-objectification-v1
+document_id: social-gender-objectification
 rule_id: RULE-DISC-001
 title: 성역할 고정관념과 대상화 표현 검토
 record_type: project_guideline
 category: discrimination_and_hate
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-ASA-GENDER, SRC-DONGA-MILK]
 verification_status: sources_checked
 verified_at: "2026-10-22"

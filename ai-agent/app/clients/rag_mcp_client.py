@@ -15,7 +15,6 @@ class RetrievalEvidence(Evidence):
     source_urls: list[str] = Field(default_factory=list)
     source_ids: list[str] = Field(default_factory=list)
     row_id: str | None = None
-    synthetic: bool = False
     score: float | None = None
     published_at: str | None = None
     category: str | None = None
@@ -27,13 +26,22 @@ class RetrievalResult(BaseModel):
     related_criteria: list[str] = Field(default_factory=list)
     mock: bool
     message: str
-    status: Literal["ok", "empty", "error"] = "empty"
+    status: Literal["ok", "empty", "too_large", "error"] = "empty"
 
 
 class RagTools(Protocol):
     async def search_social_context(self, query: str) -> RetrievalResult: ...
 
-    async def search_corporate_value(self, query: str, company_id: str) -> RetrievalResult: ...
+    async def search_corporate_value(
+        self, query: str, company_id: str, document_ids: list[str] | None = None
+    ) -> RetrievalResult: ...
+
+
+def _corporate_arguments(query: str, company_id: str, document_ids: list[str] | None) -> dict:
+    arguments = {"query": query, "company_id": company_id}
+    if document_ids is not None:
+        arguments["document_ids"] = document_ids
+    return arguments
 
 
 class RagMCPClient:
@@ -47,9 +55,12 @@ class RagMCPClient:
         response.raise_for_status()
         return RetrievalResult.model_validate(response.json())
 
-    async def search_corporate_value(self, query: str, company_id: str) -> RetrievalResult:
+    async def search_corporate_value(
+        self, query: str, company_id: str, document_ids: list[str] | None = None
+    ) -> RetrievalResult:
         response = await self.http.post(
-            "/tools/search_corporate_value", json={"query": query, "company_id": company_id}
+            "/tools/search_corporate_value",
+            json=_corporate_arguments(query, company_id, document_ids),
         )
         response.raise_for_status()
         return RetrievalResult.model_validate(response.json())
@@ -80,5 +91,9 @@ class RagMCPTransportClient:
     async def search_social_context(self, query: str) -> RetrievalResult:
         return await self.call("search_social_context", {"query": query})
 
-    async def search_corporate_value(self, query: str, company_id: str) -> RetrievalResult:
-        return await self.call("search_corporate_value", {"query": query, "company_id": company_id})
+    async def search_corporate_value(
+        self, query: str, company_id: str, document_ids: list[str] | None = None
+    ) -> RetrievalResult:
+        return await self.call(
+            "search_corporate_value", _corporate_arguments(query, company_id, document_ids)
+        )

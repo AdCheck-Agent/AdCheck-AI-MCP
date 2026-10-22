@@ -1,4 +1,4 @@
-﻿row_id,company_id,document_id,document_type,title,section,content,version,source_url,published_at,synthetic
-seojun_roasters-ethics_policy-001,seojun_roasters,seojun_roasters-ethics_policy,ethics_policy,서준로스터스 윤리경영 정책 — 합성,노동·안전,안전한 업무 환경과 휴식을 존중한다. 직원 과로·희생·산업재해를 빠른 서비스의 재미 요소로 소비하지 않는다.,v1,,,True
-seojun_roasters-ethics_policy-002,seojun_roasters,seojun_roasters-ethics_policy,ethics_policy,서준로스터스 윤리경영 정책 — 합성,조달 표현,공정무역 인증·농가 소득 보장·아동노동 없는 원두 주장은 적용 원두·업체·기간과 증빙을 확인한다. 이 합성 정책은 실제 인증서가 아니다.,v1,,,True
-seojun_roasters-ethics_policy-003,seojun_roasters,seojun_roasters-ethics_policy,ethics_policy,서준로스터스 윤리경영 정책 — 합성,지역사회 지원,실직·재난·손실을 조롱하는 마케팅을 하지 않는다. 기부 계획과 실제 전달 완료를 구분하고 자료 범위 안에서만 설명한다.,v1,,,True
+﻿row_id,company_id,document_id,document_type,title,section,content,source_url,published_at
+seojun_roasters-ethics_policy-001,seojun_roasters,seojun_roasters-ethics_policy,ethics_policy,서준로스터스 윤리경영 정책,노동·안전,안전한 업무 환경과 휴식을 존중한다. 직원 과로·희생·산업재해를 빠른 서비스의 재미 요소로 소비하지 않는다.,,
+seojun_roasters-ethics_policy-002,seojun_roasters,seojun_roasters-ethics_policy,ethics_policy,서준로스터스 윤리경영 정책,조달 표현,공정무역 인증·농가 소득 보장·아동노동 없는 원두 주장은 적용 원두·업체·기간과 증빙을 확인한다. 증빙이 확인되지 않은 인증·보장 표현은 광고에 사용하지 않는다.,,
+seojun_roasters-ethics_policy-003,seojun_roasters,seojun_roasters-ethics_policy,ethics_policy,서준로스터스 윤리경영 정책,지역사회 지원,실직·재난·손실을 조롱하는 마케팅을 하지 않는다. 기부 계획과 실제 전달 완료를 구분하고 자료 범위 안에서만 설명한다.,,

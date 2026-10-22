@@ -16,8 +16,7 @@ def evidence(rule_id: str, score: float, company_id: str | None = None) -> Retri
         chunk_id=f"{rule_id}:0",
         company_id=company_id,
         document_type="ethics_policy",
-        record_type="synthetic_company_policy",
-        synthetic=company_id is not None,
+        record_type="uploaded_company_document",
         score=score,
     )
 
@@ -81,7 +80,7 @@ def test_summarize_separates_retrieval_negative_and_isolation():
     assert summary["latency_ms"]["max"] == 40
 
 
-async def test_evaluate_routes_corpus_and_synthetic_flag():
+async def test_evaluate_routes_corpus_and_company():
     calls = []
 
     class Store:
@@ -91,9 +90,7 @@ async def test_evaluate_routes_corpus_and_synthetic_flag():
 
     await evaluate(Store(), [case(), case(corpus="corporate_demo", company_id="a")])
     assert calls[0]["collection"] == "social" and calls[0]["company_id"] is None
-    assert not calls[0]["include_synthetic"]
     assert calls[1] == calls[1] | {"collection": "corporate", "company_id": "a"}
-    assert calls[1]["include_synthetic"]
 
 
 def test_fixture_cases_are_well_formed():

@@ -1,12 +1,10 @@
 ---
-document_id: case-musinsa-2019-v1
+document_id: case-musinsa-2019
 rule_id: CASE-HIST-003
 title: 무신사 2019년 양말 광고와 2026년 재사과 보도
 record_type: reported_case
 category: historical_context
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-MBN-MUSINSA]
 verification_status: sources_checked
 verified_at: "2026-10-22"

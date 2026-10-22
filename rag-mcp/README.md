@@ -5,7 +5,7 @@
 이 서비스에는 실제 pgvector 검색과 MCP Tool이 있으며 최종 LLM 판정은 Agent 담당 범위입니다.
 
 MVP에서는 현재 사회·역사 문서 묶음을 고정 기준으로 사용합니다. 사회 문서 수정·폐기
-워크플로우 개발은 이번 범위에 포함하지 않습니다. 기업 문서는 검수 시 첨부한 데모 파일만 검색합니다.
+워크플로우 개발은 이번 범위에 포함하지 않습니다. 기업 문서는 검수 시 첨부한 파일의 내용 전체를 반환합니다.
 파트 2는 검색 결과의 반환·state 보존까지 담당하고, MCP 호출 흐름과 최종 판단은 파트 1 담당입니다.
 
 ## 1. 기업 문서 형식
@@ -23,13 +23,15 @@ CSV는 UTF-8 또는 UTF-8 BOM, XLSX는 `policies` 시트 하나를 사용합니�
 | `title` | O | 문서 제목, 최대 200자 |
 | `section` | O | 해당 정책 항목/보고서 절 제목, 최대 200자 |
 | `content` | O | 실제 정책·보고 내용, 1~20,000자. 한 행은 한 항목 |
-| `version` | O | 문서 버전, 최대 50자 |
 | `source_url` | 빈 값 허용 | 실제 출처 http(s) URL. 없으면 빈 셀, 가짜 주소 입력 금지 |
 | `published_at` | 빈 값 허용 | 실제 발행일 `YYYY-MM-DD` 또는 Excel 날짜. 업로드일과 다름 |
-| `synthetic` | O | 실제 업로드 문서는 `false`, 개발용 합성 샘플은 `true` |
 
-헤더는 11개 모두 필요합니다. 순서는 바꿔도 되지만 누락·중복·추가 컬럼은 거부합니다.
-각 파일의 `company_id`, `document_id`, `document_type`, `title`, `version`, `synthetic`은 동일해야 합니다.
+헤더는 9개 모두 필요합니다. 순서는 바꿔도 되지만 누락·중복·추가 컬럼은 거부합니다.
+각 파일의 `company_id`, `document_id`, `document_type`, `title`은 동일해야 합니다.
+문서는 최신본만 유지합니다. 같은 document_id로 다시 올리면 교체되며, **version은 RAG가 자동으로 매깁니다.**
+처음 올리면 `v1`, 같은 파일을 다시 올리면 그대로, 내용이 바뀌면 `v2`, `v3`…으로 올라갑니다.
+같은 광고를 다시 검수했을 때 각 결과가 어떤 판의 기준을 썼는지 이 값으로 구분합니다.
+문서를 삭제한 뒤 다시 올리면 새 문서로 보고 `v1`부터 시작합니다.
 내용을 임의로 다듬거나 빈 칸을 만들어 채우지 않습니다. 오류에는 행 번호와 컬럼 정보를 반환합니다.
 
 | 문서 구분 | document_type | 샘플 파일명 |
@@ -44,13 +46,12 @@ CSV는 UTF-8 또는 UTF-8 BOM, XLSX는 `policies` 시트 하나를 사용합니�
 
 두 예시 기업의 각 3종 문서는 `data/corporate/{company_id}/`에 CSV와 XLSX로 있습니다.
 두 확장자는 내용이 같으므로 **둘 중 하나만 업로드**하면 됩니다.
-기존 Markdown 샘플은 `data/research/legacy_corporate/`에 보관하고 적재 대상에서 제외했습니다.
 
 ## 2. 행 단위 chunking과 검색
 
 - 다른 행을 합치지 않고 한 정책 행의 content를 기본 chunk로 사용합니다.
 - 긴 행은 모델 tokenizer 기준 기본 96토큰, 12토큰 겹침으로 분할합니다.
-- 모든 조각에 row_id·기업·문서·유형·section·버전·출처·합성 여부를 보존합니다.
+- 모든 조각에 row_id·기업·문서·유형·section·버전·출처와 파일 내 순서를 보존합니다.
 - 사회 문서는 heading별로 나누어 기관 사실·보도 사례·프로젝트 기준을 유지합니다.
 - 한국어를 지원하는 FastEmbed `sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2`를 사용합니다.
 - 로컬 CPU 추론이며 API key는 필요 없습니다. 최초 처리 시 모델 파일을 다운로드합니다.
@@ -91,7 +92,7 @@ python -m uvicorn rag_mcp.server:app --app-dir rag-mcp --port 8001
 
 `/health`는 모델 다운로드·DB 접속 없이 살아 있음을 확인하고, `/ready`는 DB/schema/profile을 확인합니다.
 `/ready`가 성공해도 모델 가중치가 내려받아졌다는 의미는 아닙니다.
-사회 문서는 manifest의 social 항목만 적재합니다. 합성 기업 문서는 자동 적재하지 않습니다.
+사회 문서는 manifest의 social 항목만 적재합니다. 기업 문서는 자동 적재하지 않습니다.
 
 ## 4. BE → RAG: 기업 문서 등록·교체
 
@@ -115,9 +116,8 @@ curl -fsS -X PUT \
   "company_id": "taegeon_beauty",
   "document_id": "taegeon_beauty-corporate_values",
   "document_type": "corporate_values",
-  "title": "태건뷰티 기업가치 — 합성",
-  "version": "v2",
-  "synthetic": true,
+  "title": "태건뷰티 기업가치",
+  "version": "v1",
   "revision": 1,
   "chunk_count": 8,
   "status": "indexed"
@@ -125,12 +125,11 @@ curl -fsS -X PUT \
 ```
 
 실제 chunk_count는 tokenizer와 내용에 따라 달라집니다.
-실제 기업 파일은 기업·문서 ID를 BE의 값으로 작성하고 synthetic=false로 전달합니다.
-샘플 데이터를 false로 바꾼다고 실제 기업 정책이 되는 것은 아닙니다.
+기업 파일의 기업·문서 ID는 BE의 값으로 작성합니다.
 
 - URL의 기업·문서 ID와 파일 값이 다르면 422입니다.
 - 같은 파일을 재전송해도 중복 chunk를 만들지 않습니다. 기존 revision을 유지합니다.
-- 내용·버전·chunk 구성이 바뀌면 기존 chunk를 하나의 transaction에서 교체하고 revision을 올립니다.
+- 내용·chunk 구성이 바뀌면 기존 chunk를 하나의 transaction에서 교체하고 revision과 version을 올립니다.
 - expected_revision=0은 신규 문서 생성, 기존 문서는 조회한 revision을 지정하면 충돌 시 409입니다.
 - expected_revision을 생략하면 마지막으로 commit된 요청이 해당 문서의 최신 내용입니다.
 - 파싱·임베딩·DB 작업에 실패하면 이전 정상 문서와 chunk는 유지합니다.
@@ -161,44 +160,42 @@ curl -fsS http://localhost:8001/tools/search_social_context \
 
 curl -fsS http://localhost:8001/tools/search_corporate_value \
   -H 'Content-Type: application/json' \
-  -d '{"query":"외모로 구매를 압박하는 광고","company_id":"taegeon_beauty","include_synthetic":true}'
+  -d '{"query":"외모로 구매를 압박하는 광고","company_id":"taegeon_beauty"}'
 ```
 
-입력: query 필수, top_k 기본5·최대20, min_score 기본0·범위[-1,1].
-기업 검색은 company_id 필수, include_synthetic 기본false입니다.
-실제 업로드 정책은 기본 검색에 포함되고, 합성 정책은 명시적으로 true를 줘야 검색됩니다.
+입력: query 필수, top_k 기본5·최대20, min_score 기본0·범위[-1,1]. 기업 검색은 company_id 필수입니다.
 
-### 검수 시 첨부한 파일만 검색하는 데모 연동
+### 검수 시 첨부한 파일 전체 반환
 
-데모에서는 저장소의 합성 기업 CSV/XLSX 중 사용자가 이번 검수에 첨부한 파일만 검색합니다.
 BE는 파일별 업로드가 `indexed`로 완료된 뒤, 그 응답의 `document_id` 목록을 검수 요청과 함께
-Agent에 전달해야 합니다. Agent는 기업 검색 REST/MCP 호출에 아래 두 인자를 전달해야 합니다.
-Agent 요청 모델·클라이언트 연결은 AI 파트 1과 합의할 후속 작업이며, 이 변경에는 포함하지 않습니다.
+Agent에 전달해야 합니다. Agent는 기업 검색 REST/MCP 호출에 `document_ids`를 전달합니다.
 
 ```json
 {
   "query": "모든 협력업체의 노동환경을 윤리적으로 관리합니다",
   "company_id": "seojun_roasters",
-  "document_ids": ["seojun_roasters-ethics_policy"],
-  "include_synthetic": true
+  "document_ids": ["seojun_roasters-corporate_values", "seojun_roasters-ethics_policy"]
 }
 ```
 
+- `document_ids`를 주면 **순위를 매기지 않고 해당 문서의 조각을 전부** 반환합니다.
+  첨부한 순서대로, 각 문서 안에서는 파일의 행 순서대로 정렬하며 `top_k`·`min_score`는 적용하지 않습니다.
+  광고와 어긋나는 항목이 유사도 순위에서 밀려 빠지는 일을 막기 위한 동작입니다. `score`는 참고값입니다.
+- 첨부 문서 본문 합계가 `RAG_MAX_ATTACHED_CHARS`(기본 30,000자)를 넘으면 일부만 자르지 않고
+  `status: too_large`와 빈 evidence를 반환합니다. MCP `isError`가 아닌 정상 응답입니다.
 - `document_ids`: 1~100개, 각 ID는 업로드와 같은 문자 규칙·최대 150자입니다.
-  기업 ID와 문서 ID를 모두 적용한 뒤 유사도 순위와 top-k를 계산합니다.
-- 선택하지 않은 기존 문서는 검색되지 않습니다. 지정 문서가 없거나 다른 기업 소유이면
+- 선택하지 않은 기존 문서는 반환되지 않습니다. 지정 문서가 없거나 다른 기업 소유이면
   해당 문서는 결과에서 제외하며, 다른 문서로 검색 범위를 넓히지 않습니다.
 - 빈 목록은 REST 422 / MCP Tool 오류입니다. 첨부 파일이 없으면 기업 검색 호출을 생략합니다.
-- 기존 호출과의 호환성을 위해 생략 또는 null은 기업 전체 검색을 유지합니다.
-  **첨부 파일만 검색하는 검수에서는 반드시 document_ids를 전달해야 합니다.**
-- `include_synthetic: true`: 데모 샘플 검색에 필요합니다. 합성 표시는 응답에도 유지합니다.
-  샘플 파일의 `synthetic` 값을 false로 바꾸지 않습니다.
+- 생략 또는 null은 기존처럼 기업 전체에서 유사도 순위 상위 `top_k`개를 검색합니다.
+  **첨부 파일로 검수할 때는 반드시 document_ids를 전달해야 합니다.**
+- 이 행 순서는 `ordinal` 도입 후 업로드한 문서부터 적용됩니다. 이전에 올린 문서는 다시 업로드하세요.
 - 현재 문서 ID는 같은 기업 안에서 교체되는 저장 단위입니다. 같은 ID의 서로 다른 내용을
   동시에 업로드하는 검수를 구분하려면 검수별 ID·revision 고정 계약을 별도로 정해야 합니다.
 
-응답은 `status: ok|empty`, `mock:false`, `evidence`, `message`, `related_criteria`입니다.
+응답은 `status: ok|empty|too_large`, `mock:false`, `evidence`, `message`, `related_criteria`입니다.
 근거마다 document, section, snippet, rule_id, version, document_id, chunk_id, company_id,
-document_type, record_type, source_urls, source_ids, row_id, synthetic, score를 보존합니다.
+document_type, record_type, source_urls, source_ids, row_id, score를 보존합니다.
 업로드 정책의 rule_id는 해당 row_id입니다. 빈 검색 결과와 검색 실패를 구분합니다.
 
 ### 검색 결과 state 보존
@@ -271,7 +268,7 @@ RAG_TEST_DATABASE_URL=postgresql://adcheck:adcheck@localhost:5433/adcheck_rag_te
 ### 검색 품질 평가 (실제 임베딩)
 
 `tests/fixtures/retrieval_cases.json` 문항으로 hit@k·MRR·기업 격리·무관 문구 점수·지연 시간을 측정합니다.
-DB의 RAG 문서를 지우고 사회 문서와 합성 기업 CSV 전체를 다시 적재하므로 `_eval`/`_test` DB만 허용합니다.
+DB의 RAG 문서를 지우고 사회 문서와 기업 CSV 전체를 다시 적재하므로 `_eval`/`_test` DB만 허용합니다.
 
 ```bash
 docker compose exec pgvector createdb -U adcheck adcheck_rag_eval
@@ -288,7 +285,7 @@ PYTHONPATH=rag-mcp python -m rag_mcp.evaluation \
 - 문서 유형 코드 3개, 기업·문서 ID, 원본 파일 보관과 접근 권한
 - 업로드 요청 timeout과 indexed/실패 상태 표시
 - 문서 수정 때 같은 document_id로 교체할지 별도 이력을 남길지
-- 검수에 첨부한 파일의 document_ids 전달과 데모용 include_synthetic=true를 BE·Agent에 연결
+- 검수에 첨부한 파일의 document_ids를 BE·Agent에 연결
 - 현재 pgvector는 AI 개발용 독립 DB. BE PostgreSQL과 합칠 때 접속·권한·migration 소유권 결정
 
 금기어 RDB·LLM 최종 판정·Frontend는 이 변경에서 구현하지 않습니다.
@@ -299,7 +296,7 @@ Business/Tavily 검색의 기존 작업은 유지합니다.
 - CSV 6개와 XLSX 6개의 내용 동등성·컬럼 검증 완료
 - 별도 pgvector test DB를 포함한 전체 테스트 87개 통과, Ruff lint/format 통과
 - 실제 로컬 임베딩으로 사회 문서 12개 적재·검색 확인
-- CSV/XLSX 업로드·재전송·기업 격리·합성 제외·삭제 smoke 검증 완료
+- CSV/XLSX 업로드·재전송·기업 격리·삭제 smoke 검증 완료
 - 실제 MCP Tool 호출과 Agent 그래프 → MCP → pgvector 연결 확인
-- LLM 판정은 mock. 검색 기준선 평가: 23문항 hit@5 0.96, 기업 격리 위반 0건 (합성 문항 기준)
-- 기업가치 샘플 v2(방향성 행 추가) 후 기업 hit@5 0.88. 기업 근거는 첨부 문서 전체(`top_k: 20`)를 판정에 전달 권장
+- LLM 판정은 mock. 검색 기준선 평가: 23문항 hit@5 0.96, 기업 격리 위반 0건 (개발용 문항 기준)
+- 기업가치 방향성 행 추가 후 기업 hit@5 0.88. 이에 따라 document_ids 지정 시 첨부 문서 전체를 반환하도록 변경

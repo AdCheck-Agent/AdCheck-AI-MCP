@@ -1,6 +1,5 @@
 {
   "version": "v1",
-  "synthetic": true,
   "execution_status": "real-embedding evaluation: python -m rag_mcp.evaluation (dedicated *_eval DB)",
   "evaluation": "Use expected_any_rule_ids as manual recall targets; enforce company isolation independently of rank. Do not index this file.",
   "cases": [
@@ -14,7 +13,7 @@
         "RULE-HIST-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-02",
@@ -25,7 +24,7 @@
         "CASE-HIST-003"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-03",
@@ -36,7 +35,7 @@
         "CASE-HIST-002"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-04",
@@ -47,7 +46,7 @@
         "CASE-DIGNITY-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-05",
@@ -58,7 +57,7 @@
         "CASE-DISC-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-06",
@@ -70,7 +69,7 @@
         "RULE-DISC-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-07",
@@ -81,7 +80,7 @@
         "RULE-CHILD-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-08",
@@ -92,7 +91,7 @@
         "RULE-DIGNITY-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-09",
@@ -103,7 +102,7 @@
         "RULE-LABOR-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-10",
@@ -115,7 +114,7 @@
         "CASE-HIST-002"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-11",
@@ -148,7 +147,7 @@
         "RULE-LABOR-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SOC-14",
@@ -160,7 +159,7 @@
         "RULE-CONTEXT-001"
       ],
       "must_not_return_rule_ids": [],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "TGB-01",
@@ -186,7 +185,7 @@
         "seojun_roasters-ethics_policy-002",
         "seojun_roasters-ethics_policy-003"
       ],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "TGB-02",
@@ -213,7 +212,7 @@
         "seojun_roasters-ethics_policy-002",
         "seojun_roasters-ethics_policy-003"
       ],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "TGB-03",
@@ -239,7 +238,7 @@
         "seojun_roasters-ethics_policy-002",
         "seojun_roasters-ethics_policy-003"
       ],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "TGB-04",
@@ -292,7 +291,7 @@
         "taegeon_beauty-ethics_policy-002",
         "taegeon_beauty-ethics_policy-003"
       ],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SJR-02",
@@ -319,7 +318,7 @@
         "taegeon_beauty-ethics_policy-002",
         "taegeon_beauty-ethics_policy-003"
       ],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SJR-03",
@@ -345,7 +344,7 @@
         "taegeon_beauty-ethics_policy-002",
         "taegeon_beauty-ethics_policy-003"
       ],
-      "note": "개발용 합성 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
+      "note": "개발용 검색 질문. 최소 한 개의 관련 rule_id 회수 여부를 평가하며 최종 검수 상태의 정답은 아니다."
     },
     {
       "id": "SJR-04",

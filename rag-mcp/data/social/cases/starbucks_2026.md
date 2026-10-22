@@ -1,12 +1,10 @@
 ---
-document_id: case-starbucks-2026-v1
+document_id: case-starbucks-2026
 rule_id: CASE-HIST-001
 title: 스타벅스 2026년 5월 행사명·문구 논란
 record_type: reported_case
 category: historical_context
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-JNILBO-STARBUCKS]
 verification_status: sources_checked
 verified_at: "2026-10-22"

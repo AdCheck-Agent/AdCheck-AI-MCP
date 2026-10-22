@@ -52,7 +52,9 @@ def _table(filename: str, data: bytes, settings: Settings) -> list[list]:
                 if any(cell.data_type == "f" for cell in cells):
                     raise DocumentError("수식은 지원하지 않습니다. 계산된 값을 넣어 주세요.")
                 table.append([cell.value for cell in cells])
-            return table
+            # Excel omits trailing empty cells, so blank optional last columns arrive short.
+            width = len(table[0]) if table else 0
+            return [row + [None] * (width - len(row)) for row in table]
         finally:
             wb.close()
     except (UnicodeError, csv.Error, zipfile.BadZipFile, KeyError, ValueError) as exc:
@@ -94,9 +96,9 @@ def parse_policies(filename: str, data: bytes, settings: Settings) -> list[Polic
         rows.append(row)
     if not rows:
         raise DocumentError("최소 한 개의 정책 행이 필요합니다.")
-    identity = ("company_id", "document_id", "document_type", "title", "version", "synthetic")
+    identity = ("company_id", "document_id", "document_type", "title")
     if any(any(getattr(r, key) != getattr(rows[0], key) for key in identity) for r in rows):
-        raise DocumentError("한 파일에는 같은 기업·문서·유형·제목·버전·합성 여부만 넣으세요.")
+        raise DocumentError("한 파일에는 같은 기업·문서·유형·제목만 넣으세요.")
     return rows
 
 
@@ -112,6 +114,8 @@ async def corporate_document(rows: list[PolicyRow], embeddings: Embeddings) -> D
                     content=content,
                     metadata={
                         "row_id": row.row_id,
+                        # File order; attached-document retrieval returns chunks in this order.
+                        "ordinal": len(chunks),
                         "source_urls": [str(row.source_url)] if row.source_url else [],
                         "published_at": row.published_at.isoformat() if row.published_at else None,
                     },
@@ -124,18 +128,12 @@ async def corporate_document(rows: list[PolicyRow], embeddings: Embeddings) -> D
         corpus="corporate",
         document_type=first.document_type,
         title=first.title,
-        version=first.version,
-        synthetic=first.synthetic,
         checksum=hashlib.sha256(canonical.encode()).hexdigest(),
         chunks=chunks,
         metadata={
             "category": "corporate_value",
-            "verification_status": "synthetic_not_fact_checked"
-            if first.synthetic
-            else "user_provided_not_independently_verified",
-            "record_type": "synthetic_company_policy"
-            if first.synthetic
-            else "uploaded_company_document",
+            "verification_status": "user_provided_not_independently_verified",
+            "record_type": "uploaded_company_document",
         },
     )
 
@@ -146,7 +144,7 @@ async def social_documents(data_dir: Path, embeddings: Embeddings) -> list[Docum
     sources = {s["source_id"]: s["url"] for s in registry["sources"]}
     documents = []
     for item in manifest["documents"]:
-        if item["corpus"] != "social" or item["synthetic"]:
+        if item["corpus"] != "social":
             continue
         path = (data_dir / item["path"]).resolve()
         if not path.is_relative_to((data_dir / "social").resolve()):
@@ -176,8 +174,6 @@ async def social_documents(data_dir: Path, embeddings: Embeddings) -> list[Docum
                 corpus="social",
                 document_type=meta["record_type"],
                 title=meta["title"],
-                version=meta["version"],
-                synthetic=False,
                 checksum=hashlib.sha256(text.encode()).hexdigest(),
                 chunks=chunks,
                 metadata={

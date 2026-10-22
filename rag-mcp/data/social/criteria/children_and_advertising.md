@@ -1,12 +1,10 @@
 ---
-document_id: social-children-advertising-v1
+document_id: social-children-advertising
 rule_id: RULE-CHILD-001
 title: 아동·청소년의 성적 대상화와 구매 압박 검토
 record_type: project_guideline
 category: discrimination_and_hate
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-ASA-CHILD]
 verification_status: sources_checked
 verified_at: "2026-10-22"

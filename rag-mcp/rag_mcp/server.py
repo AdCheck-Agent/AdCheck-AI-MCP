@@ -86,7 +86,6 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
             backend,
             payload.top_k,
             payload.min_score,
-            payload.include_synthetic,
             payload.document_ids,
         )
 
@@ -101,17 +100,15 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
         company_id: str,
         top_k: int = 5,
         min_score: float = 0.0,
-        include_synthetic: bool = False,
         document_ids: list[str] | None = None,
     ) -> SearchResult:
-        """For attached files, pass their document_ids. Demo files need include_synthetic=true."""
+        """With document_ids, returns every chunk of those files in file order (top_k ignored)."""
         return await corporate(
             CorporateQuery(
                 query=query,
                 company_id=company_id,
                 top_k=top_k,
                 min_score=min_score,
-                include_synthetic=include_synthetic,
                 document_ids=document_ids,
             )
         )

@@ -17,7 +17,9 @@ async def retrieve_corporate_value_live(state: ReviewState, tools: RagTools) -> 
             "rag_errors": [*state["rag_errors"], "COMPANY_NOT_SPECIFIED"],
         }
     try:
-        result = await tools.search_corporate_value(state["source_text"], company_id)
+        result = await tools.search_corporate_value(
+            state["source_text"], company_id, document_ids=state["context"].document_ids
+        )
         return {"corporate_value_evidence": result.evidence, "corporate_value_result": result}
     except Exception:
         logging.getLogger(__name__).warning("RAG corporate failed trace_id=%s", state["trace_id"])

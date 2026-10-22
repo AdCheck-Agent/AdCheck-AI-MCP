@@ -83,7 +83,7 @@ Spring Boot, Frontend, 금기어 RDB는 현재 Compose에 포함하지 않습니
 | [ai-agent/app/core/config.py](ai-agent/app/core/config.py) | Agent의 .env 설정 |
 | [ai-agent/app/rules/banned_expressions.json](ai-agent/app/rules/banned_expressions.json) | RDB 연동 전 임시 규칙 |
 | [rag-mcp/rag_mcp/](rag-mcp/rag_mcp/) | 검색 서버, Tool, Retriever / Embeddings 인터페이스 |
-| [rag-mcp/data/](rag-mcp/data/) | 사회 기준·확인 사례 12개, 두 기업 합성 정책 6개, 출처·적재 manifest |
+| [rag-mcp/data/](rag-mcp/data/) | 사회 기준·확인 사례 12개, 두 기업 문서 6개, 출처·적재 manifest |
 | [business-mcp/business_mcp/](business-mcp/business_mcp/) | Tavily 외부검색 MCP·HTTP 서버 |
 | [docker-compose.yml](docker-compose.yml) | 컨테이너 구성과 포트·내부 URL |
 | [requirements.txt](requirements.txt) | 실행 의존성 |
@@ -205,10 +205,11 @@ RAG 근거 레코드는 다음 필드를 보존합니다.
 | `section` | 문서 항목 |
 | `snippet` | 실제 검색된 근거 내용 |
 | `rule_id` | 기준 ID |
-| `version` | 기준 문서 버전 |
+| `version` | 기준 문서 버전. 적재 시 RAG가 자동 부여 |
 
-현재 RAG 모델은 5개 필드 모두 필수이며, Agent의 Evidence 모델은 `rule_id`, `version`을
-선택으로 받습니다. 실제 연동에서는 출처 추적을 위해 이 두 필드도 채워 전달합니다.
+RAG 근거는 5개 필드 모두 채워서 반환하며, Agent의 Evidence 모델은 `rule_id`, `version`을 선택으로 받습니다.
+문서는 최신본만 두고 version은 내용이 바뀔 때 RAG가 자동으로 올립니다. 같은 광고를 다시 검수했을 때
+어떤 판의 기준으로 판정했는지 이 값으로 추적합니다.
 URL·점수 등 새 metadata가 필요하면 두 서비스의 모델을 함께 수정합니다.
 
 공통 수정이 생기기 쉬운 파일은 `schemas/review.py`, `graph/state.py`, `graph/graph.py`,
@@ -340,6 +341,7 @@ curl -fsS http://localhost:8000/api/v1/reviews \
 
 입력은 `text` 공백 제거 후 1~2,000자, `context.channel`은 필수 `sns`입니다.
 `campaign_name`은 선택·최대 100자, `company_id`는 선택·제공 시 1~100자입니다.
+`document_ids`는 선택이며, 첨부한 기업 문서 ID 1~100개를 주면 해당 문서 전체를 기업 근거로 사용합니다.
 입력 오류는 현재 FastAPI 기본 HTTP 422 응답을 사용합니다.
 Backend가 기대하는 오류 형식이 있다면 별도로 합의해 구현해야 합니다.
 
@@ -394,7 +396,7 @@ python -m pytest business-mcp/tests -q
 ## 12. 다음 작업의 진행 순서
 
 1. 두 파트와 Backend가 금기어 DB 소유권·조회 계약, 근거 schema, 기업 ID 정책을 합의합니다.
-2. 파트 1은 합의한 합성 근거 fixture로 판정·수정안·검증을 구현합니다.
+2. 파트 1은 합의한 근거 fixture로 판정·수정안·검증을 구현합니다.
 3. 파트 2는 기준 문서 준비부터 실제 RAG 검색을 구현합니다.
 4. 파트 2의 adapter와 파트 1의 그래프를 연결하고 mock 표시를 실제 기능에 맞게 교체합니다.
 5. 선택한 MCP SDK로 서버·클라이언트를 연결하고 실제 Tool 호출을 검증합니다.

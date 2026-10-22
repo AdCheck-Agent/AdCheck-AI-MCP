@@ -1,12 +1,10 @@
 ---
-document_id: social-historical-context-v1
+document_id: social-historical-context
 rule_id: RULE-HIST-001
 title: 역사적 사건·기념일과 상업적 표현의 맥락 검토
 record_type: project_guideline
 category: historical_context
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-MPVA-518, SRC-KDEMO-PARK, SRC-ARCHIVES-625]
 verification_status: sources_checked
 verified_at: "2026-10-22"

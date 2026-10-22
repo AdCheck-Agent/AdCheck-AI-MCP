@@ -134,7 +134,6 @@ async def evaluate(
             company_id=case["company_id"] if corporate else None,
             top_k=top_k,
             min_score=min_score,
-            include_synthetic=corporate,
         )
         results.append(score_case(case, evidence, (time.perf_counter() - started) * 1000))
     return results

@@ -11,30 +11,37 @@
 
 ## 이번에 바뀐 것
 
-- 두 데모 기업의 `corporate_values` 문서를 v2로 올렸다. 금지 규칙 001~003에 지향 내용 004~008을 추가했다.
+- 두 기업의 `corporate_values` 문서에 금지 규칙 001~003 외에 지향 내용 004~008을 추가했다.
   항목은 미션·핵심 가치·브랜드 톤·주요 고객·약속이며, 상세 내용은 [데이터 안내](../rag-mcp/data/README.md)를 참고한다.
 - 실제 임베딩 기반 검색 평가를 추가했다. 결과는 [검색 평가](2026-10-22-rag-retrieval-eval.md)에 정리했다.
-- RAG API·MCP 계약과 Agent 코드는 변경하지 않았다.
+- 후속 변경(`refactor/remove-synthetic-attached-docs`):
+  - `synthetic`(합성 여부) 개념을 업로드 형식·DB·검색·응답·Agent MCP client에서 모두 삭제했다. 두 기업은 실제 기업으로 다룬다.
+  - `document_ids`를 주면 첨부 문서 전체를 순서대로 반환하도록 기업 검색을 바꿨다.
+  - 검수 요청 `context.document_ids` → 기업 검색 노드 → MCP client로 첨부 문서 ID를 전달하도록 연결했다.
+  - 사회·기업 문서는 최신본만 두고 이전 판 파일을 삭제했다. `version`은 파일에 적지 않고 RAG가 자동으로 매긴다
+    (처음 v1, 내용 변경 시 증가). 기업 업로드 형식은 9개 컬럼이다.
+  - 재검수 시 어떤 판의 기준으로 판정했는지 추적하도록 RAG 근거·최종 응답 `Evidence`에 `version`을 유지한다.
 
 ## 파트 1에서 연결할 내용
 
-### 1. 기업 검색 호출 인자 — 지금 상태로는 데모 기업 근거가 비어 있음
+### 1. 첨부 문서 ID — 연결 완료, BE 계약 필요
 
-현재 Agent client는 아래 세 값을 보내지 않는다. 데모 문서는 synthetic이라 기본 검색에서 제외되므로 결과가 `empty`다.
+검수 요청에 `context.document_ids`를 추가했고 Agent가 이를 기업 검색에 전달한다.
+BE가 업로드 완료된 문서 ID 목록을 이 필드로 보내도록 계약해야 한다. 없으면 기존처럼 기업 전체 유사도 상위 5개다.
 
 ```json
 {
   "query": "검수 문구",
   "company_id": "seojun_roasters",
-  "document_ids": ["seojun_roasters-corporate_values", "seojun_roasters-ethics_policy"],
-  "include_synthetic": true,
-  "top_k": 20
+  "document_ids": ["seojun_roasters-corporate_values", "seojun_roasters-ethics_policy"]
 }
 ```
 
-- `document_ids`: 이번 검수에 첨부된 문서만 검색하도록 BE가 전달한 목록을 사용한다.
-- `include_synthetic: true`: 데모 샘플 검색에 필요하다. 샘플의 synthetic 값은 바꾸지 않는다.
-- `top_k: 20`(최대값): 데모 기업은 문서 3개를 모두 첨부해도 14 chunk라 전부 반환된다.
+- `document_ids`: BE가 전달한 이번 검수의 첨부 문서 목록. 주면 **해당 문서의 조각 전부**가
+  첨부 순서·파일 행 순서대로 반환된다. `top_k`·`min_score`는 적용되지 않는다.
+- 첨부 문서 본문 합계가 30,000자(`RAG_MAX_ATTACHED_CHARS`)를 넘으면 `status: too_large`와 빈 evidence가 온다.
+  일부만 보고 판정하지 않도록 보류 처리를 권장한다. Agent client는 이 상태값을 받을 수 있게 수정했다.
+- 두 기업 문서 3개를 모두 첨부해도 14 chunk·약 1,000자라 상한과 무관하다.
 
 ### 2. 기업 근거는 순위가 아니라 전체 대조용
 
@@ -51,7 +58,6 @@
   예: "누구나 들르는 동네 커피집"을 지향하는 서준로스터스의 "아는 사람만 오는 프리미엄 라운지"
 - 기획안 11장은 "정교한 브랜드 톤 분석"을 MVP에서 제외했다. 006 "브랜드 톤" 행은 참고용으로만 쓰고,
   미션·고객·약속과 명확히 어긋나는 경우를 중심으로 판단하는 것을 권장한다.
-- 데모 정책은 합성이다. 판정 결과에 실제 기업의 공식 정책처럼 표현하지 않는다(`synthetic: true` 유지).
 - 기업 문서가 첨부되지 않은 검수에서 기업 검토를 생략할지, 보류할지는 BE·FE와 합의가 필요하다.
 
 ### 4. 판정 평가에 쓸 수 있는 문항
@@ -61,6 +67,5 @@
 
 ## 파트 2 후속 작업
 
-- 첨부 문서가 20 chunk를 넘는 실제 기업 자료에 대비한 "첨부 문서 전체 반환" 옵션
 - 허브 문서(`RULE-HIST-001`, `RULE-CONTEXT-001`) 완화와 `SOC-03` 미회수 원인 확인
 - 문서 정리: guide.md·README의 이전 설명(placeholder, mock, 26개 테스트 등) 갱신

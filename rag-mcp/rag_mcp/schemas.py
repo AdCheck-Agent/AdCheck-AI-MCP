@@ -15,7 +15,6 @@ class SearchQuery(BaseModel):
 
 class CorporateQuery(SearchQuery):
     company_id: str = Field(min_length=1, max_length=100)
-    include_synthetic: bool = False
     document_ids: (
         list[Annotated[str, Field(min_length=1, max_length=150, pattern=r"^[A-Za-z0-9_.:-]+$")]]
         | None
@@ -36,7 +35,6 @@ class RetrievedEvidence(BaseModel):
     source_urls: list[str] = Field(default_factory=list)
     source_ids: list[str] = Field(default_factory=list)
     row_id: str | None = None
-    synthetic: bool = False
     score: float
     published_at: date | None = None
     category: str | None = None
@@ -47,7 +45,7 @@ class SearchResult(BaseModel):
     evidence: list[RetrievedEvidence] = Field(default_factory=list)
     related_criteria: list[str] = Field(default_factory=list)
     mock: bool = False
-    status: Literal["ok", "empty"] = "empty"
+    status: Literal["ok", "empty", "too_large"] = "empty"
     message: str = ""
 
 
@@ -60,19 +58,8 @@ class PolicyRow(BaseModel):
     title: str = Field(min_length=1, max_length=200)
     section: str = Field(min_length=1, max_length=200)
     content: str = Field(min_length=1, max_length=20000)
-    version: str = Field(min_length=1, max_length=50)
     source_url: HttpUrl | None = None
     published_at: date | None = None
-    synthetic: bool
-
-    @field_validator("synthetic", mode="before")
-    @classmethod
-    def synthetic_flag(cls, value):
-        if isinstance(value, bool):
-            return value
-        if isinstance(value, str) and value.strip().lower() in ("true", "false"):
-            return value.strip().lower() == "true"
-        raise ValueError("synthetic에는 true 또는 false를 입력하세요.")
 
     @field_validator("row_id", "company_id", "document_id")
     @classmethod
@@ -95,8 +82,6 @@ class DocumentRecord(BaseModel):
     corpus: Literal["social", "corporate"]
     document_type: str
     title: str
-    version: str
-    synthetic: bool
     checksum: str
     chunks: list[Chunk]
     metadata: dict = Field(default_factory=dict)
@@ -108,7 +93,6 @@ class DocumentResult(BaseModel):
     document_type: str
     title: str
     version: str
-    synthetic: bool
     revision: int
     chunk_count: int
     status: Literal["indexed"] = "indexed"

@@ -1,12 +1,10 @@
 ---
-document_id: social-dignity-distress-v1
+document_id: social-dignity-distress
 rule_id: RULE-DIGNITY-001
 title: 존엄성·취약성·공포를 이용한 광고 표현 검토
 record_type: project_guideline
 category: social_issue
 company_id: null
-version: v1
-synthetic: false
 source_ids: [SRC-ICC-CODE, SRC-NEWSPIM-NENE]
 verification_status: sources_checked
 verified_at: "2026-10-22"
