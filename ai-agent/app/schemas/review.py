@@ -43,6 +43,11 @@ class ReviewRequest(InputModel):
     )
 
 
+class ReviewAccepted(BaseModel):
+    status: Literal["accepted"] = "accepted"
+    trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")
+
+
 class Evidence(BaseModel):
     document: str = Field(min_length=1)
     section: str = Field(min_length=1)
