@@ -36,7 +36,7 @@ class CheckpointResult(BaseModel):
 
 class CheckpointTools(Protocol):
     async def save_checkpoint(
-        self, original_text_id: str, checkpoint_level: str
+        self, original_text_id: str, checkpoint_level: str, result: dict | None = None
     ) -> CheckpointResult: ...
 
 
@@ -75,7 +75,7 @@ class BusinessMCPTransportClient:
     ) -> None:
         self.url, self.timeout, self.http_client = url, timeout, http_client
 
-    async def _call_tool(self, name: str, arguments: dict[str, str]):
+    async def _call_tool(self, name: str, arguments: dict):
         from mcp import ClientSession
         from mcp.client.streamable_http import streamable_http_client
 
@@ -103,11 +103,11 @@ class BusinessMCPTransportClient:
         return RecentIssueResult.model_validate(content)
 
     async def save_checkpoint(
-        self, original_text_id: str, checkpoint_level: str
+        self, original_text_id: str, checkpoint_level: str, result: dict | None = None
     ) -> CheckpointResult:
         """Ask the Business server to record the finished stage on the backend."""
-        content = await self._call_tool(
-            "save_checkpoint",
-            {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level},
-        )
+        arguments = {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level}
+        if result is not None:
+            arguments["result"] = result
+        content = await self._call_tool("save_checkpoint", arguments)
         return CheckpointResult.model_validate(content)

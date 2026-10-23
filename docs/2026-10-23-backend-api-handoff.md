@@ -131,11 +131,34 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
 
 - Agent는 접수 응답을 먼저 전송하고 FastAPI BackgroundTasks에서 검수를 실행한다.
 - 작업 ID, 상태 조회 API, SQLite 큐는 사용하지 않는다. 입력 JSON 형식은 유지한다.
-- 검수 결과 모델은 기존 형식을 유지한다. 최종 결과 전달용 SSE는 다른 브랜치에서 별도로 연결한다.
+- 검수 결과 모델은 기존 형식을 유지한다. `CHECKPOINT_ENABLED=true`이고 `review_id`가 있으면
+  Agent → Business MCP `save_checkpoint` → BE CP 저장 API로 완료한 단계를 전송한다.
+  마지막 `COMPLETED`에는 검증된 최종 응답을 `result`로 함께 보낸다. BE가 저장 후 완료 SSE를 발행한다.
 - 실행 함수는 `app/services/review.py`의 `run_review`다. BackgroundTasks의 반환값은 자동 전송되지 않는다.
 - 실행 제한은 `REVIEW_TIMEOUT_SECONDS`(기본 60초)이며, 완료 상태·실행 오류·시간 초과는 trace_id로 로그에 남긴다.
 - 입력 오류는 기존 HTTP 422다. 202 응답 후 실행 오류를 같은 요청의 HTTP 500/504로 반환하지 않는다.
 - 서버 프로세스 내부에서 실행하므로 서버 재시작 후 작업 복구는 제공하지 않는다.
+
+최종 CP 형식 (`X-Internal-Key`는 Business 설정에서 읽으며 Tool 인자로 받지 않는다):
+
+```json
+{
+  "original_text_id": "a0000000-0000-4000-8000-000000000001",
+  "checkpoint_level": "COMPLETED",
+  "result": {
+    "status": "needs_review",
+    "summary": "게시 맥락 확인 필요",
+    "findings": [],
+    "related_criteria": [],
+    "missing_information": [],
+    "trace_id": "trace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
+```
+
+`needs_review`도 정상 완료이며, 실행 예외·시간 초과 시에는 `COMPLETED`를 보내지 않는다.
+CP는 순서대로 전송하고 재시도 가능 오류는 한 번 재시도한다.
+CP 전송이 끝내 실패하면 로그로 남긴다. 별도 실패 CP와 BE 대기 만료는 후속 작업이다.
 
 검수 결과 구조 예시 (접수 응답과 별개):
 

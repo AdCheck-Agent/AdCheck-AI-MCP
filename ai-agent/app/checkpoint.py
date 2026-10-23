@@ -11,6 +11,7 @@ import logging
 
 from app.clients.business_mcp_client import CheckpointResult, CheckpointTools
 from app.events import StageEvent, StageStatus
+from app.schemas.review import ReviewResponse
 
 logger = logging.getLogger(__name__)
 
@@ -21,8 +22,8 @@ _STOP = object()
 class CheckpointSink:
     """EventSink that saves a checkpoint each time a stage SUCCEEDS.
 
-    Skipped and failed stages are not saved: nothing was finished there, and a failed review
-    is reported by the HTTP error instead.
+    Skipped and failed stages are not saved. Only a validated review sends COMPLETED,
+    with its final result, so a needs_review verdict still completes the backend job.
     """
 
     def __init__(
@@ -41,14 +42,14 @@ class CheckpointSink:
         if event.status == StageStatus.SUCCEEDED:
             self._put(event.stage.value)
 
-    def complete(self) -> None:
-        self._put(COMPLETED)
+    def complete(self, result: ReviewResponse | None = None) -> None:
+        self._put(COMPLETED, result.model_dump(mode="json") if result else None)
 
-    def _put(self, level: str) -> None:
+    def _put(self, level: str, result: dict | None = None) -> None:
         if self.worker is None:
             return
         # Nodes can run in worker threads, so hand over to the event loop thread-safely.
-        self.loop.call_soon_threadsafe(self.queue.put_nowait, level)
+        self.loop.call_soon_threadsafe(self.queue.put_nowait, (level, result))
 
     async def close(self, timeout: float = 5) -> None:
         """Wait (briefly) until everything queued has been sent."""
@@ -62,15 +63,20 @@ class CheckpointSink:
             logger.warning("checkpoint flush timed out trace_id=%s", self.trace_id)
 
     async def _run(self) -> None:
-        while (level := await self.queue.get()) is not _STOP:
-            await self._send(level)
+        while (item := await self.queue.get()) is not _STOP:
+            await self._send(*item)
 
-    async def _send(self, level: str) -> None:
+    async def _send(self, level: str, payload: dict | None) -> None:
         assert self.original_text_id is not None
         # A retryable failure is retried once, here, before the next stage is sent.
         for attempt in (1, 2):
             try:
-                result = await self.tools.save_checkpoint(self.original_text_id, level)
+                if payload is None:
+                    result = await self.tools.save_checkpoint(self.original_text_id, level)
+                else:
+                    result = await self.tools.save_checkpoint(
+                        self.original_text_id, level, result=payload
+                    )
             except Exception:
                 logger.exception(
                     "checkpoint call failed trace_id=%s level=%s", self.trace_id, level

@@ -14,12 +14,15 @@ OK = CheckpointResult(status="ok", message="ok")
 class Tools:
     def __init__(self, results=None, delay=0.0) -> None:
         self.calls: list[tuple[str, str]] = []
+        self.payloads: list[dict] = []
         self.results = list(results or [])
         self.delay = delay
 
-    async def save_checkpoint(self, original_text_id, checkpoint_level):
+    async def save_checkpoint(self, original_text_id, checkpoint_level, result=None):
         await asyncio.sleep(self.delay)
         self.calls.append((original_text_id, checkpoint_level))
+        if result is not None:
+            self.payloads.append(result)
         if self.results:
             result = self.results.pop(0)
             if isinstance(result, Exception):
@@ -153,26 +156,30 @@ def test_route_saves_stages_then_completed(monkeypatch) -> None:
     tools = Tools()
     response = _post(tools, monkeypatch)
     levels = [level for _, level in tools.calls]
-    assert response.status_code == 200
+    assert response.status_code == 202
     assert levels[0] == "BANNED_WORD_CHECK"
     assert levels[-2:] == ["OUTPUT_VALIDATION", "COMPLETED"]
     assert {original for original, _ in tools.calls} == {ID}
+    assert len(tools.payloads) == 1
+    assert tools.payloads[0]["trace_id"] == response.json()["trace_id"]
+    assert tools.payloads[0]["status"] == "needs_review"
+    assert "summary" in tools.payloads[0] and "findings" in tools.payloads[0]
 
 
 def test_route_failed_review_is_never_completed(monkeypatch) -> None:
     tools = Tools()
     response = _post(tools, monkeypatch, break_graph=True)
-    assert response.status_code == 500
+    assert response.status_code == 202
     assert "COMPLETED" not in [level for _, level in tools.calls]
 
 
 def test_route_backend_down_does_not_fail_the_review(monkeypatch) -> None:
     tools = Tools([RuntimeError("down")] * 20)
-    assert _post(tools, monkeypatch).status_code == 200
+    assert _post(tools, monkeypatch).status_code == 202
 
 
 def test_route_without_tools_or_review_id_is_unchanged(monkeypatch) -> None:
-    assert _post(None, monkeypatch).status_code == 200
+    assert _post(None, monkeypatch).status_code == 202
     tools = Tools()
-    assert _post(tools, monkeypatch, review_id=None).status_code == 200
+    assert _post(tools, monkeypatch, review_id=None).status_code == 202
     assert tools.calls == []

@@ -39,6 +39,8 @@ async def save_checkpoint(
     checkpoint_level: CheckpointLevel,
     settings: Settings | None = None,
     transport: httpx.AsyncBaseTransport | None = None,
+    *,
+    result: dict | None = None,
 ) -> CheckpointResult:
     """Save the review stage on the backend. One attempt, no retry.
 
@@ -47,6 +49,8 @@ async def save_checkpoint(
     The internal key is read from settings only; it is never a Tool argument.
     """
     UUID(original_text_id)  # the backend requires a UUID; fail before any network call
+    if result is not None and checkpoint_level != "COMPLETED":
+        raise ValueError("result는 COMPLETED CP에만 포함할 수 있습니다.")
     config = settings if settings is not None else get_settings()
     key = config.internal_api_key
     if not config.adcheck_be_base_url or key is None or not key.get_secret_value().strip():
@@ -55,16 +59,16 @@ async def save_checkpoint(
             message="ADCHECK_BE_BASE_URL 또는 INTERNAL_API_KEY가 설정되지 않았습니다.",
         )
     url = config.adcheck_be_base_url.rstrip("/") + "/api/v1/reviews/checkpoint"
+    payload = {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level}
+    if result is not None:
+        payload["result"] = result
     try:
         async with asyncio.timeout(config.checkpoint_timeout_seconds):
             async with httpx.AsyncClient(transport=transport, follow_redirects=False) as http:
                 response = await http.patch(
                     url,
                     headers={"X-Internal-Key": key.get_secret_value()},
-                    json={
-                        "original_text_id": original_text_id,
-                        "checkpoint_level": checkpoint_level,
-                    },
+                    json=payload,
                 )
     except TimeoutError:
         return CheckpointResult(

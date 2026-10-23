@@ -74,17 +74,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def save_checkpoint_tool(
         original_text_id: Annotated[str, StringConstraints(strip_whitespace=True)],
         checkpoint_level: CheckpointLevel,
+        result: dict | None = None,
     ) -> Annotated[CallToolResult, CheckpointResult]:
-        """Record the review stage that just finished on the AdCheck backend."""
+        """Save a finished stage; COMPLETED may include the final review result."""
         try:
             result = await save_checkpoint(
                 original_text_id,
                 checkpoint_level,
                 settings if settings is not None else get_settings(),
+                result=result,
             )
-        except ValueError:
+        except ValueError as exc:
             result = CheckpointResult(
-                status="error", message="original_text_id는 UUID 형식이어야 합니다."
+                status="error", message=f"CP 요청 형식을 확인하세요: {exc}"
             )
         return CallToolResult(
             content=[TextContent(type="text", text=result.model_dump_json())],
