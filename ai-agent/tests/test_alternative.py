@@ -119,10 +119,68 @@ def test_graph_end_to_end_returns_suggestion(monkeypatch: pytest.MonkeyPatch) ->
         lambda state: {"social_context_evidence": [evidence]},
     )
     set_review_model(
-        FakeModel(json.dumps(judged, ensure_ascii=False), alt((0, "봄맞이 감사 할인")))
+        FakeModel(
+            json.dumps(judged, ensure_ascii=False),
+            alt((0, "봄맞이 감사 할인"), (1, "지금 만나보세요")),
+        )
     )
     graph = graph_module.build_graph()
     result = graph.invoke(initial_state(ReviewRequest(text=TEXT, context={"channel": "sns"})))
     response = ReviewResponse.model_validate(result)
     assert response.status == "revise"
     assert response.findings[0].suggestion == "봄맞이 감사 할인"
+    # TEXT also holds a banned expression the model did not flag: it is listed and gets a fix too.
+    banned = response.findings[1]
+    assert (banned.detection_type, banned.quote) == ("BANNED_WORD", "안 사면 평생 후회")
+    assert banned.suggestion == "지금 만나보세요"
+
+
+def risky_state() -> ReviewState:
+    state = initial_state(
+        ReviewRequest(text="5월 18일 기념 탱크데이 특가", context={"channel": "sns"})
+    )
+    state["findings"] = [
+        Finding(
+            category="historical_context",
+            severity="high",
+            quote="5월 18일 기념 탱크데이",
+            reason="날짜와 결합",
+            evidence=[
+                Evidence(
+                    document="사례",
+                    section="사실",
+                    snippet="2026년 5월 18일 행사에 탱크데이 표현이 사용돼 비판받았다",
+                )
+            ],
+            needs_human_review=False,
+        )
+    ]
+    state["summary"] = "수정 필요"
+    return state
+
+
+def test_prompt_tells_the_model_which_words_to_avoid() -> None:
+    from app.llm.alternative import risk_terms
+
+    assert risk_terms(risky_state()["findings"][0]) == {"5월", "18일", "탱크데이"}
+
+
+def test_suggestion_keeping_a_flagged_word_is_retried_once() -> None:
+    model = FakeModel(alt((0, "특별한 날 탱크데이")), alt((0, "감사 특가")))
+    result = generate_alternative_with(model)
+    assert result["status"] == "revise"
+    assert result["findings"][0].suggestion == "감사 특가"
+    assert len(model.calls) == 2
+    assert "탱크데이" in model.calls[1][1]  # the retry names the word to drop
+
+
+def test_suggestion_still_keeping_the_word_goes_to_a_person() -> None:
+    model = FakeModel(alt((0, "5월 18일 감사 특가")), alt((0, "5월 18일 봄 특가")))
+    result = generate_alternative_with(model)
+    assert result["status"] == "needs_review"
+    assert all(f.needs_human_review for f in result["findings"])
+
+
+def generate_alternative_with(model: FakeModel) -> dict:
+    set_review_model(model)
+    return generate_alternative(risky_state())

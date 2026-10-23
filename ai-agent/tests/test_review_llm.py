@@ -194,7 +194,11 @@ def test_graph_end_to_end_with_model_and_evidence(
         "retrieve_social_context",
         lambda state: {"social_context_evidence": [evidence()]},
     )
-    alternative = '{"suggestions": [{"index": 0, "suggestion": "봄맞이 감사 할인"}]}'
+    # TEXT also holds a banned expression, which gets a second finding and its own suggestion.
+    alternative = (
+        '{"suggestions": [{"index": 0, "suggestion": "봄맞이 감사 할인"},'
+        ' {"index": 1, "suggestion": "지금 만나보세요"}]}'
+    )
     set_review_model(FakeModel(raw, alternative))
     graph = graph_module.build_graph()
     result = graph.invoke(initial_state(ReviewRequest(text=text, context={"channel": "sns"})))

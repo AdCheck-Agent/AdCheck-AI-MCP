@@ -10,7 +10,8 @@ from mcp.types import CallToolResult, TextContent
 from pydantic import StringConstraints
 
 from business_mcp.config import Settings, get_settings
-from business_mcp.schemas import SearchQuery, SearchResult
+from business_mcp.schemas import CheckpointLevel, CheckpointResult, SearchQuery, SearchResult
+from business_mcp.tools.save_checkpoint import save_checkpoint
 from business_mcp.tools.search_recent_issue import search_recent_issue
 
 
@@ -67,6 +68,28 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             content=[TextContent(type="text", text=result.model_dump_json())],
             structuredContent=result.model_dump(mode="json"),
             isError=result.status in {"error", "unavailable", "timeout"},
+        )
+
+    @mcp.tool(name="save_checkpoint")
+    async def save_checkpoint_tool(
+        original_text_id: Annotated[str, StringConstraints(strip_whitespace=True)],
+        checkpoint_level: CheckpointLevel,
+    ) -> Annotated[CallToolResult, CheckpointResult]:
+        """Record the review stage that just finished on the AdCheck backend."""
+        try:
+            result = await save_checkpoint(
+                original_text_id,
+                checkpoint_level,
+                settings if settings is not None else get_settings(),
+            )
+        except ValueError:
+            result = CheckpointResult(
+                status="error", message="original_text_id는 UUID 형식이어야 합니다."
+            )
+        return CallToolResult(
+            content=[TextContent(type="text", text=result.model_dump_json())],
+            structuredContent=result.model_dump(mode="json"),
+            isError=result.status != "ok",
         )
 
     app.mount("/", mcp_app)

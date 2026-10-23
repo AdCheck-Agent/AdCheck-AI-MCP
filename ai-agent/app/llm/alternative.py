@@ -20,6 +20,8 @@ SYSTEM_PROMPT = """\
 2. 각 finding의 quote를 대체할 수 있는 수정 표현(suggestion)을 하나씩 제안하세요.
 3. 원래 광고의 목적과 핵심 혜택(할인, 이벤트 등)은 유지하고, 문제가 되는 표현만 바꾸세요.
 4. 원래 quote나 <rule_hits>에 있는 금기어를 수정 표현에 다시 쓰지 마세요.
+4-2. 각 finding의 avoid에 있는 단어는 수정 표현에 쓰지 마세요. 근거가 문제 삼은 \
+날짜·행사명·표현이라서, 일부만 남겨도 같은 사건이 연상됩니다.
 4-1. 같은 광고에 남는 다른 부분(행사명, 날짜 등)과 합쳐졌을 때도 같은 사건이 \
 연상되지 않아야 합니다. 다른 finding의 quote에 있는 표현도 쓰지 마세요.
 5. 특정 역사적 사건, 날짜, 상징을 연상시키는 표현으로 바꾸지 마세요.
@@ -44,9 +46,39 @@ class Alternatives(BaseModel):
     suggestions: list[Suggestion]
 
 
-def build_prompt(state: ReviewState) -> str:
+_EDGE = " \t\n.,!?;:·'\"()[]{}~…"
+
+
+def _tokens(text: str) -> set[str]:
+    return {t for t in (w.strip(_EDGE) for w in text.split()) if len(t) >= 2}
+
+
+def risk_terms(finding: Finding) -> set[str]:
+    """Words the quote shares with the evidence that flagged it: the part that evokes the case."""
+    evidence = (
+        set().union(*(_tokens(e.snippet) for e in finding.evidence)) if finding.evidence else set()
+    )
+    return _tokens(finding.quote) & evidence
+
+
+def _keeps_risk_term(finding: Finding, suggestion: str) -> set[str]:
+    kept = set()
+    words = _tokens(suggestion)
+    for term in risk_terms(finding):
+        if term in words or (len(term) >= 3 and term in suggestion):
+            kept.add(term)
+    return kept
+
+
+def build_prompt(state: ReviewState, retry_hint: str = "") -> str:
     findings = [
-        {"index": i, "category": f.category, "quote": f.quote, "reason": f.reason}
+        {
+            "index": i,
+            "category": f.category,
+            "quote": f.quote,
+            "reason": f.reason,
+            "avoid": sorted(risk_terms(f)),
+        }
         for i, f in enumerate(state["findings"])
     ]
     hits = [h.expression for h in state["rule_hits"]]
@@ -54,7 +86,7 @@ def build_prompt(state: ReviewState) -> str:
         f"<ad_text>\n{state['source_text']}\n</ad_text>\n\n"
         f"<findings>\n{json.dumps(findings, ensure_ascii=False)}\n</findings>\n\n"
         f"<rule_hits>\n{json.dumps(hits, ensure_ascii=False)}\n</rule_hits>\n\n"
-        f"{OUTPUT_FORMAT}"
+        f"{retry_hint}{OUTPUT_FORMAT}"
     )
 
 
@@ -81,22 +113,46 @@ def _request(model: ReviewModel, user: str) -> Alternatives | None:
     return None
 
 
-def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] | None:
-    """Return findings with a validated suggestion each, or None if any cannot be trusted."""
-    alternatives = _request(model, build_prompt(state))
-    if alternatives is None:
-        return None
-
+def _validate(
+    state: ReviewState, alternatives: Alternatives
+) -> tuple[list[Finding] | None, set[str]]:
+    """Findings with a suggestion each, or None; plus the risk terms a suggestion kept."""
     by_index = {s.index: s.suggestion.strip() for s in alternatives.suggestions}
     banned = [normalize(h.expression) for h in state["rule_hits"]]
+    reused = [normalize(f.quote) for f in state["findings"]] + banned
     result: list[Finding] = []
+    kept_terms: set[str] = set()
     for i, finding in enumerate(state["findings"]):
         suggestion = by_index.get(i)
         if not suggestion:
-            return None
+            return None, set()
         normalized = normalize(suggestion)
-        reused = [normalize(f.quote) for f in state["findings"]] + banned
         if any(term and term in normalized for term in reused):
-            return None
+            return None, set()
+        kept_terms |= _keeps_risk_term(finding, suggestion)
         result.append(finding.model_copy(update={"suggestion": suggestion}))
+    return result, kept_terms
+
+
+def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] | None:
+    """Return findings with a validated suggestion each, or None if any cannot be trusted.
+
+    A suggestion that keeps a word the evidence flagged (e.g. the date or event name) gets one
+    more try with that word named; if it still keeps it, a person has to look at it.
+    """
+    alternatives = _request(model, build_prompt(state))
+    if alternatives is None:
+        return None
+    result, kept = _validate(state, alternatives)
+    if result is not None and kept:
+        hint = (
+            f"직전 수정안이 다음 단어를 그대로 남겼습니다: {sorted(kept)}. "
+            "이 단어 없이 다시 쓰세요.\n\n"
+        )
+        alternatives = _request(model, build_prompt(state, hint))
+        if alternatives is None:
+            return None
+        result, kept = _validate(state, alternatives)
+        if kept:
+            return None
     return result

@@ -1,6 +1,6 @@
 from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 Status = Literal["pass", "revise", "needs_review"]
 Severity = Literal["low", "medium", "high"]
@@ -23,6 +23,9 @@ class InputModel(BaseModel):
 class ReviewContext(InputModel):
     channel: Literal["sns"]
     campaign_name: str | None = Field(default=None, max_length=100)
+    campaign_purpose: str | None = Field(default=None, max_length=200)
+    # When the ad will be posted; a date in the copy is judged against it.
+    scheduled_at: AwareDatetime | None = None
     company_id: str | None = Field(default=None, min_length=1, max_length=100)
     # Files attached to this review; RAG returns every chunk of these documents.
     document_ids: (
@@ -34,6 +37,10 @@ class ReviewContext(InputModel):
 class ReviewRequest(InputModel):
     text: str = Field(min_length=1, max_length=2000)
     context: ReviewContext
+    # Chosen by the backend; echoed on every stage event so it can tell reviews apart.
+    review_id: str | None = Field(
+        default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.:-]+$"
+    )
 
 
 class Evidence(BaseModel):
@@ -44,7 +51,12 @@ class Evidence(BaseModel):
     version: str | None = None
 
 
+DetectionType = Literal["BANNED_WORD", "SEMANTIC"]
+
+
 class Finding(BaseModel):
+    # BANNED_WORD: the quote matches a banned expression; SEMANTIC: the model judged the meaning.
+    detection_type: DetectionType = "SEMANTIC"
     category: Category
     severity: Severity
     quote: str = Field(min_length=1)
@@ -59,4 +71,6 @@ class ReviewResponse(BaseModel):
     summary: str = Field(min_length=1)
     findings: list[Finding]
     related_criteria: list[str] = Field(default_factory=list)
+    # What could not be checked (no company, search failed, ...) so a person knows the gap.
+    missing_information: list[str] = Field(default_factory=list)
     trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")
