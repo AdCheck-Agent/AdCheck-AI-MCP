@@ -57,12 +57,15 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
   - `version`은 RAG가 매기므로 파일에 적지 않는다.
 - 파일 3개를 첨부한 검수라면 문서마다 한 번씩, 총 3번 호출한다.
 
-### 파일 형식 (9개 컬럼)
+### 파일 형식 (7개 컬럼)
 
-`row_id, company_id, document_id, document_type, title, section, content, source_url, published_at`
+`row_id, document_type, title, section, content, source_url, published_at`
 
-- 파일 안의 `company_id`·`document_id`가 URL 값과 같아야 한다. 다르면 `422 IDENTITY_MISMATCH`.
-- ID에는 영문·숫자와 `_ - . :`만 쓸 수 있다. `company_id`는 100자, `document_id`는 150자 이하.
+- 기업·문서 ID는 파일에 적지 않는다. RAG는 URL의 `{company_id}`, `{document_id}`를 그대로 쓴다.
+  따라서 BE가 업로드 순간에 만든 UUID를 사용자 파일을 고치지 않고 그대로 쓸 수 있다.
+- `company_id`·`document_id` 열이 남아 있는 예전 형식 파일도 받는다. 그 값은 쓰지 않고 URL의 ID를 쓴다.
+- URL의 ID에는 영문·숫자와 `_ - . :`만 쓸 수 있다(UUID 가능). 기업 100자, 문서 150자 이하.
+  규칙에 맞지 않으면 `422 INVALID_IDENTITY`.
 - `document_type`: `corporate_values` | `sustainability_report` | `ethics_policy`
 - `source_url`·`published_at`은 비워도 된다.
 - 예시 파일: [rag-mcp/data/corporate/](../rag-mcp/data/corporate/)
@@ -76,7 +79,7 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
 ### 오류 응답
 
 ```json
-{ "error": { "code": "IDENTITY_MISMATCH", "message": "파일의 기업·문서 ID가 URL과 다릅니다.", "retryable": false } }
+{ "error": { "code": "INVALID_DOCUMENT", "message": "컬럼을 확인하세요. 필수 헤더: ...", "retryable": false } }
 ```
 
 | HTTP | code | 의미 |
@@ -84,7 +87,7 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
 | 413 | `FILE_TOO_LARGE` | 5MiB 초과 |
 | 415 | `UNSUPPORTED_FILE_TYPE` | CSV·XLSX 외 형식(PDF 등) |
 | 422 | `INVALID_DOCUMENT` | 헤더·컬럼·값 오류, 중복 `row_id`, 행 수 초과, 수식 포함 등. `message`에 행 번호가 있다 |
-| 422 | `IDENTITY_MISMATCH` | 파일과 URL의 ID 불일치 |
+| 422 | `INVALID_IDENTITY` | URL의 기업·문서 ID가 문자 규칙·길이에 맞지 않음 |
 | 404 | `DOCUMENT_NOT_FOUND` | 조회·삭제 대상 없음 |
 | 409 | `REVISION_CONFLICT` | `expected_revision`이 현재 값과 다름. 다시 조회한 뒤 재시도 |
 | 503 | `STORAGE_UNAVAILABLE`, `EMBEDDING_UNAVAILABLE` | DB 또는 임베딩 모델 일시 장애. `retryable: true` |
@@ -190,7 +193,7 @@ CP 전송이 끝내 실패하면 로그로 남긴다. 별도 실패 CP와 BE 대
 ## 합의가 필요한 사항
 
 1. **검수 요청에 `context.document_ids` 전달**: 업로드가 끝난 문서 ID만 보낸다.
-2. **ID 규칙**: `company_id`·`document_id`를 BE가 발급하고, 기업 파일에도 같은 값을 쓴다.
+2. **ID 규칙**: `company_id`·`document_id`는 BE가 발급해 URL로만 전달한다. 파일에는 적지 않는다.
 3. **호출 순서**: 문서 업로드(①)가 성공한 뒤에 검수 요청(②)을 보낸다.
 4. **기업 문서 없이 검수하는 경우**: 기업 가치 검토를 생략할지, 사람 검토로 보낼지 정해야 한다. BE·FE·파트 1이 함께 정한다.
 5. **접근 제한**: RAG 문서 API에는 인증이 없다. 외부에 공개하지 말고 BE만 접근할 수 있는 내부망에 두어야 한다.
