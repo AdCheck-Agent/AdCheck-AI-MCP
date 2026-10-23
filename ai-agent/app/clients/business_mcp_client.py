@@ -25,6 +25,21 @@ class RecentIssueResult(BaseModel):
     message: str
 
 
+class CheckpointResult(BaseModel):
+    status: Literal["ok", "timeout", "unavailable", "error"]
+    http_status: int | None = None
+    error_code: str | None = None
+    trace_id: str | None = None
+    retryable: bool = False
+    message: str
+
+
+class CheckpointTools(Protocol):
+    async def save_checkpoint(
+        self, original_text_id: str, checkpoint_level: str
+    ) -> CheckpointResult: ...
+
+
 class BusinessTools(Protocol):
     async def search_recent_issue(self, query: str) -> RecentIssueResult: ...
 
@@ -60,7 +75,7 @@ class BusinessMCPTransportClient:
     ) -> None:
         self.url, self.timeout, self.http_client = url, timeout, http_client
 
-    async def search_recent_issue(self, query: str) -> RecentIssueResult:
+    async def _call_tool(self, name: str, arguments: dict[str, str]):
         from mcp import ClientSession
         from mcp.client.streamable_http import streamable_http_client
 
@@ -74,11 +89,25 @@ class BusinessMCPTransportClient:
                 )
                 session = await stack.enter_async_context(ClientSession(read, write))
                 await session.initialize()
-                response = await session.call_tool("search_recent_issue", {"query": query})
+                response = await session.call_tool(name, arguments)
         except TimeoutError:
             raise
         except Exception as exc:
             raise ValueError("Business MCP 호출에 실패했습니다.") from exc
         if response.structuredContent is None:
             raise ValueError("Business MCP가 구조화된 결과를 반환하지 않았습니다.")
-        return RecentIssueResult.model_validate(response.structuredContent)
+        return response.structuredContent
+
+    async def search_recent_issue(self, query: str) -> RecentIssueResult:
+        content = await self._call_tool("search_recent_issue", {"query": query})
+        return RecentIssueResult.model_validate(content)
+
+    async def save_checkpoint(
+        self, original_text_id: str, checkpoint_level: str
+    ) -> CheckpointResult:
+        """Ask the Business server to record the finished stage on the backend."""
+        content = await self._call_tool(
+            "save_checkpoint",
+            {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level},
+        )
+        return CheckpointResult.model_validate(content)

@@ -23,6 +23,7 @@ class RuleHit(BaseModel):
 
 
 class ReviewState(TypedDict):
+    review_id: str | None
     source_text: str
     context: ReviewContext
     rule_hits: list[RuleHit]
@@ -40,12 +41,14 @@ class ReviewState(TypedDict):
     status: NotRequired[Status]
     findings: list[Finding]
     related_criteria: NotRequired[list[str]]
+    missing_information: NotRequired[list[str]]
     summary: str
     trace_id: str
 
 
 def initial_state(request: ReviewRequest) -> ReviewState:
     return ReviewState(
+        review_id=request.review_id,
         source_text=request.text,
         context=request.context,
         rule_hits=[],

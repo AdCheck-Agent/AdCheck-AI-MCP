@@ -4,13 +4,29 @@ from typing import Annotated
 from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from langgraph.graph.state import CompiledStateGraph
 
+from app.checkpoint import CheckpointSink
 from app.core.config import get_settings
+from app.events import EventSink, LogSink, StageTracker, current_tracker
 from app.graph.state import initial_state
 from app.schemas.review import ReviewAccepted, ReviewRequest
 from app.services.review import run_review
 
 router = APIRouter(prefix="/api/v1")
 logger = logging.getLogger(__name__)
+
+
+class _Both:
+    """Send each event to every sink; one failing sink must not hide it from the other."""
+
+    def __init__(self, *sinks: EventSink) -> None:
+        self.sinks = sinks
+
+    def emit(self, event) -> None:
+        for sink in self.sinks:
+            try:
+                sink.emit(event)
+            except Exception:
+                logger.exception("event sink failed")
 
 
 def get_graph(request: Request) -> CompiledStateGraph:

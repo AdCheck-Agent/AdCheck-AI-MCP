@@ -32,7 +32,8 @@ async def mcp_session(settings: Settings | None = None):
 async def test_tool_discovery_and_missing_key() -> None:
     async with mcp_session() as session:
         tools = (await session.list_tools()).tools
-        assert [tool.name for tool in tools] == ["search_recent_issue"]
+        assert sorted(tool.name for tool in tools) == ["save_checkpoint", "search_recent_issue"]
+        tools = [t for t in tools if t.name == "search_recent_issue"]
         query_schema = tools[0].inputSchema["properties"]["query"]
         assert query_schema["minLength"] == 1
         assert query_schema["maxLength"] == 400

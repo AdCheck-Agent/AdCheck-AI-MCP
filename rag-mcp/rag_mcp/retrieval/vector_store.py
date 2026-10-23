@@ -77,9 +77,8 @@ class PgVectorStore:
     async def initialize(self) -> None:
         async with self.connection(check_profile=False) as conn:
             await conn.execute("SELECT pg_advisory_xact_lock(781532)")
-            await conn.execute(
-                Path(__file__).resolve().parents[1].joinpath("schema.sql").read_text()
-            )
+            schema = Path(__file__).resolve().parents[1].joinpath("schema.sql").read_text()
+            await conn.execute(schema.replace("vector(384)", f"vector({self.embeddings.dim})"))
             await conn.execute(
                 "INSERT INTO adcheck_rag.profile(embedding_profile) VALUES (%s) "
                 "ON CONFLICT DO NOTHING",
@@ -239,7 +238,8 @@ class PgVectorStore:
         if not pieces:
             raise DocumentError("검색어에 본문이 없습니다.")
         vectors = await self.embeddings.embed(pieces)
-        vector = str([sum(v[i] for v in vectors) / len(vectors) for i in range(384)])
+        dim = self.embeddings.dim
+        vector = str([sum(v[i] for v in vectors) / len(vectors) for i in range(dim)])
         select = (
             "SELECT d.*,c.chunk_id,c.section,c.content,c.metadata AS chunk_metadata,"
             "1-(c.embedding <=> %s::vector) AS score "

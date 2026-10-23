@@ -28,12 +28,11 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
         else None
     )
 
-    application.state.review_graph = build_graph(
-        business_tools=BusinessMCPTransportClient(
-            str(settings.business_mcp_url).rstrip("/") + "/mcp", timeout=5
-        ),
-        rag_tools=rag_tools,
+    business = BusinessMCPTransportClient(
+        str(settings.business_mcp_url).rstrip("/") + "/mcp", timeout=5
     )
+    application.state.checkpoint_tools = business if settings.checkpoint_enabled else None
+    application.state.review_graph = build_graph(business_tools=business, rag_tools=rag_tools)
     yield
 
 

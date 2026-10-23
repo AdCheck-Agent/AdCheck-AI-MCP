@@ -11,6 +11,9 @@ from app.llm.client import ReviewModel, set_review_model
 from app.schemas.review import Evidence, ReviewRequest, ReviewResponse
 
 CASES_PATH = Path(__file__).parent / "cases.json"
+# Bump when real-model cases are added or their expectations change, so before/after runs compare
+# the same set.
+EVAL_SET_VERSION = "v3"
 
 
 def load_cases() -> list[dict]:
@@ -51,3 +54,9 @@ def run_case(case: dict, model: ReviewModel | None) -> ReviewResponse:
             return ReviewResponse.model_validate(result)
     finally:
         set_review_model(None)
+
+
+def missing_quotes(case: dict, response: ReviewResponse) -> list[str]:
+    """Expected quotes that no finding points at (a risky phrase the model overlooked)."""
+    found = " ".join(f.quote for f in response.findings)
+    return [q for q in case.get("expected_quotes", []) if q not in found]
