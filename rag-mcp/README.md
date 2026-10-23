@@ -98,6 +98,12 @@ python -m uvicorn rag_mcp.server:app --app-dir rag-mcp --port 8001
 
 `/health`는 모델 다운로드·DB 접속 없이 살아 있음을 확인하고, `/ready`는 DB/schema/profile을 확인합니다.
 `/ready`가 성공해도 모델 가중치가 내려받아졌다는 의미는 아닙니다.
+모델은 첫 검색 때 불러옵니다. bge-m3는 컨테이너 시작 직후 첫 검색이 10초 이상 걸려 Agent의 RAG 호출 timeout(10초)을
+넘길 수 있으므로, 검수 전에 검색을 한 번 호출해 둡니다.
+
+```bash
+curl -s localhost:8001/tools/search_social_context -H 'Content-Type: application/json' -d '{"query":"준비"}' >/dev/null
+```
 사회 문서는 manifest의 social 항목만 적재합니다. 기업 문서는 자동 적재하지 않습니다.
 
 ### 외부 DB(Supabase) 사용
@@ -253,7 +259,7 @@ MCP 입력 인자는 위 검색 모델과 같고 반환은 structuredContent에 
 Agent의 `RagMCPTransportClient`가 초기화·Tool 호출·오류 확인을 담당합니다.
 기존 `RagMCPClient`는 HTTP 대체 adapter로 유지했습니다.
 Agent의 사회·기업 검색 노드에 실제 MCP client를 연결했습니다. 로컬 .env의 RAG_RETRIEVAL_ENABLED=true로 활성화하며 Compose에서는 기본으로 켭니다.
-DB·MCP 호출 실패는 rag_errors로 기록하고 needs_review로 보류합니다. company_id가 없으면 기업 검색을 생략합니다. LLM 판정은 아직 mock입니다.
+DB·MCP 호출 실패는 rag_errors로 기록하고 needs_review로 보류합니다. company_id가 없으면 기업 검색을 생략하고 최종 결과의 `missing_information`에 남깁니다.
 
 ## 7. 오류 응답
 
@@ -311,21 +317,23 @@ PYTHONPATH=rag-mcp python -m rag_mcp.evaluation \
 
 ## 9. Backend와 합의할 범위
 
-- 문서 유형 코드 3개, 기업·문서 ID, 원본 파일 보관과 접근 권한
-- 업로드 요청 timeout과 indexed/실패 상태 표시
-- 문서 수정 때 같은 document_id로 교체할지 별도 이력을 남길지
-- 검수에 첨부한 파일의 document_ids를 BE·Agent에 연결
-- 현재 pgvector는 AI 개발용 독립 DB. BE PostgreSQL과 합칠 때 접속·권한·migration 소유권 결정
+BE는 첨부 CSV를 내용 변경 없이 업로드하고, 기업 UUID와 업로드 때 만든 문서 UUID를 URL로 보냅니다.
+업로드가 모두 `indexed`인 뒤 그 문서 ID를 `document_ids`로 Agent에 넘깁니다(BE `docs/review-start-api.md`).
 
-금기어 RDB·LLM 최종 판정·Frontend는 이 변경에서 구현하지 않습니다.
-Business/Tavily 검색의 기존 작업은 유지합니다.
+| 항목 | 상태 |
+|---|---|
+| 기업·문서 ID | BE가 발급해 URL로만 전달. 파일에는 적지 않음 (완료) |
+| 첨부 문서 ID 전달 | BE → Agent `document_ids` (완료) |
+| 원본 파일 보관 | RAG는 보관하지 않음. BE 담당 |
+| 업로드 timeout | BE `RAG_READ_TIMEOUT` 기본 120초 |
+| DB 위치 | 기본은 Compose pgvector. Supabase로 옮길지와 schema·권한 관리 주체는 합의 필요 |
+| FE 안내 | 사용자에게 7개 컬럼 CSV 형식을 안내할 방법 (FE 담당) |
 
-## 최종 확인 기록
+## 최종 확인 기록 (2026-10-23)
 
-- CSV 6개와 XLSX 6개의 내용 동등성·컬럼 검증 완료
-- 별도 pgvector test DB를 포함한 전체 테스트 87개 통과, Ruff lint/format 통과
-- 실제 로컬 임베딩으로 사회 문서 12개 적재·검색 확인
-- CSV/XLSX 업로드·재전송·기업 격리·삭제 smoke 검증 완료
-- 실제 MCP Tool 호출과 Agent 그래프 → MCP → pgvector 연결 확인
-- LLM 판정은 mock. 검색 기준선 평가: 23문항 hit@5 0.96, 기업 격리 위반 0건 (개발용 문항 기준)
-- 기업가치 방향성 행 추가 후 기업 hit@5 0.88. 이에 따라 document_ids 지정 시 첨부 문서 전체를 반환하도록 변경
+- 전체 테스트 297개 통과(전용 test DB 포함), Ruff lint 통과
+- bge-m3 검색 평가: 전체 hit@1 0.81·MRR 0.87, 사회 hit@1 1.00, 기업 hit@1 0.63, 기업 격리 위반 0건
+  ([검색 평가](../docs/2026-10-22-rag-retrieval-eval.md))
+- BE와 같은 UUID로 7개 컬럼·예전 9개 컬럼 CSV 업로드 `indexed`, 응답 ID가 URL과 같음, 첨부 문서 검색 정상
+- 같은 파일 재업로드 시 version 유지, CLI `ingest-corporate`·평가 명령 정상
+- Agent 그래프 → MCP → pgvector, 실제 모델 판정까지 연결 확인

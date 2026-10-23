@@ -1,14 +1,15 @@
 # 2026-10-23 BE ↔ AI 서비스 API 정리 (파트 2)
 
-BE가 AI 서비스와 통신할 때 쓰는 API와 합의할 사항을 정리했다.
+BE와 AI 서비스가 주고받는 API와 합의할 사항을 정리했다.
 상세 계약은 [RAG 가이드](../rag-mcp/README.md)와 [guide.md](../guide.md)를 참고한다.
 
 ## 한눈에 보기
 
 ```text
 BE ──① PUT/GET/DELETE 기업 문서──▶ rag-mcp :8001   (검수 전에 문서 등록)
-BE ──② POST 검수 요청────────────▶ ai-agent :8000  (document_ids로 첨부 문서 지정)
+BE ──② POST 검수 요청────────────▶ ai-agent :8000  (202 접수, document_ids로 첨부 문서 지정)
                                      └─▶ rag-mcp / business-mcp  (Agent가 내부 호출, BE는 호출하지 않음)
+BE ◀─③ PATCH 체크포인트──────────── business-mcp save_checkpoint  (단계 완료, 마지막에 최종 결과)
 ```
 
 | 순서 | API | 호출 주체 → 대상 | 용도 |
@@ -17,6 +18,7 @@ BE ──② POST 검수 요청────────────▶ ai-agent 
 | ① | `GET /api/v1/companies/{company_id}/documents/{document_id}` | BE → RAG | 등록 상태 조회 |
 | ① | `DELETE /api/v1/companies/{company_id}/documents/{document_id}` | BE → RAG | 문서 삭제 |
 | ② | `POST /api/v1/reviews` | BE → Agent | HTTP 202 접수 응답 후 백그라운드 검수 |
+| ③ | `PATCH /api/v1/reviews/checkpoint` | Business-MCP → BE | 단계 완료 보고, `COMPLETED`에 최종 결과 (`X-Internal-Key`) |
 | - | `GET /health`, `GET /ready`(RAG만) | BE → 각 서비스 | 상태 확인 |
 
 BE는 RAG의 검색 API(`/tools/*`, `/mcp`)와 Business-MCP를 직접 호출하지 않는다. Agent가 내부에서 호출한다.
@@ -102,9 +104,10 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
   "context": {
     "channel": "sns",
     "campaign_name": "가을 캠페인",
-    "company_id": "taegeon_beauty",
-    "document_ids": ["taegeon_beauty-corporate_values", "taegeon_beauty-ethics_policy"]
-  }
+    "company_id": "6f1c2a4e-0b7d-4c1e-9a55-3d2f8e9b1c00",
+    "document_ids": ["1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed"]
+  },
+  "review_id": "a0000000-0000-4000-8000-000000000001"
 }
 ```
 
@@ -112,15 +115,18 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
 |---|---|---|
 | `text` | 예 | 검수할 문구. 2,000자 이하 |
 | `context.channel` | 예 | 현재 `"sns"`만 허용 |
-| `context.campaign_name` | 아니오 | 100자 이하 |
-| `context.company_id` | 아니오 | 없으면 기업 가치 검토를 하지 않는다 |
+| `context.campaign_name` | 아니오 | 100자 이하. 판정에는 쓰지 않는다 |
+| `context.campaign_purpose` | 아니오 | 200자 이하. 판정 프롬프트에 들어간다 (현재 BE는 보내지 않음) |
+| `context.scheduled_at` | 아니오 | 게시 예정 시각(시간대 포함 ISO). 문구 속 날짜를 이 기준으로 판단한다 (현재 BE는 보내지 않음) |
+| `context.company_id` | 아니오 | 없으면 기업 가치 검토를 하지 않고 `missing_information`에 남긴다 |
 | `context.document_ids` | 아니오 | 이번 검수에 첨부한 문서 ID 목록. 1~100개 |
+| `review_id` | 아니오 | BE의 `original_text_id`(UUID). 있어야 체크포인트를 보낸다 |
 
 - `document_ids`를 주면 RAG가 해당 문서의 내용 **전체**를 첨부 순서대로 Agent에 넘긴다.
 - `document_ids`가 없으면 그 기업의 등록 문서 전체에서 문구와 비슷한 상위 5개만 쓴다.
 - 등록되지 않았거나 다른 기업의 `document_id`는 오류 없이 결과에서 빠진다.
   따라서 BE는 ①의 등록 응답을 받은 문서 ID만 보낸다.
-- 첨부 문서 본문 합계가 30,000자를 넘으면 기업 근거 없이 처리된다. 사람 검토로 보내는 방향으로 파트 1과 맞추는 중이다.
+- 첨부 문서 본문 합계가 30,000자를 넘으면 기업 근거 없이 처리하고, 사유를 표시하며 `pass`로 끝나지 않게 막는다.
 - 알 수 없는 필드를 보내면 `422`가 난다.
 
 접수 응답 예시 (HTTP 202):
@@ -171,6 +177,7 @@ CP 전송이 끝내 실패하면 로그로 남긴다. 별도 실패 CP와 BE 대
   "summary": "...",
   "findings": [
     {
+      "detection_type": "SEMANTIC",
       "category": "corporate_value",
       "severity": "medium",
       "quote": "문제 구절",
@@ -182,27 +189,35 @@ CP 전송이 끝내 실패하면 로그로 남긴다. 별도 실패 CP와 BE 대
       "needs_human_review": true
     }
   ],
+  "related_criteria": ["취약성·직업·장애 등을 이용한 조롱 방지"],
+  "missing_information": [],
   "trace_id": "trace_0123456789abcdef0123456789abcdef"
 }
 ```
 
 - `status`: `pass` | `revise` | `needs_review`
+- `detection_type`: `BANNED_WORD`(금기어 일치) | `SEMANTIC`(모델이 의미로 판단)
+- `related_criteria`: 화면의 "관련 검수 기준" 태그. 지적이 없으면 빈 목록
+- `missing_information`: 확인하지 못한 항목(기업 ID 없음, 검색 실패, 첨부 문서 과대, 외부검색 실패)
+- `needs_review`에는 수정안(`suggestion`)이 없다
 - `evidence.version`: 판정에 쓴 문서 판(v1, v2…). 같은 광고를 다시 검수했을 때 기준 문서가 바뀌었는지 구분하는 데 쓴다.
 - 응답 형식은 파트 1(Agent) 담당이며 바뀔 수 있다. 최신 형식은 `ai-agent/app/schemas/review.py`를 기준으로 한다.
 
 ## 합의가 필요한 사항
 
-1. **검수 요청에 `context.document_ids` 전달**: 업로드가 끝난 문서 ID만 보낸다.
-2. **ID 규칙**: `company_id`·`document_id`는 BE가 발급해 URL로만 전달한다. 파일에는 적지 않는다.
-3. **호출 순서**: 문서 업로드(①)가 성공한 뒤에 검수 요청(②)을 보낸다.
+1. ~~검수 요청에 `context.document_ids` 전달~~ → BE 구현 완료(업로드가 끝난 문서 ID만 전달)
+2. ~~ID 규칙~~ → BE가 발급해 URL로만 전달, 파일에는 적지 않음
+3. ~~호출 순서~~ → BE는 모든 첨부가 `indexed`인 뒤 검수 요청
+3-1. **`campaign_purpose`·`scheduled_at` 전달 여부**: Agent는 판정에 쓰지만 BE·FE에는 입력이 없다.
 4. **기업 문서 없이 검수하는 경우**: 기업 가치 검토를 생략할지, 사람 검토로 보낼지 정해야 한다. BE·FE·파트 1이 함께 정한다.
 5. **접근 제한**: RAG 문서 API에는 인증이 없다. 외부에 공개하지 말고 BE만 접근할 수 있는 내부망에 두어야 한다.
 6. **삭제 동기화**: BE에서 문서를 지우면 RAG `DELETE`도 호출해야 한다.
 7. **업로드 timeout과 상태 표시**: 업로드는 임베딩까지 끝나야 응답하므로 몇 초 걸릴 수 있다.
    BE의 timeout 값과 화면에 보여 줄 처리 중·완료(`indexed`)·실패 상태를 정한다.
 8. **원본 파일 보관**: RAG는 원본 파일을 보관하지 않는다. 원본 보관과 접근 권한은 BE가 맡는다.
-9. **DB 통합**: pgvector는 지금 AI 개발용 독립 DB다.
-   BE PostgreSQL과 합칠지, 합친다면 접속·권한·migration을 누가 맡을지 정한다.
+9. **DB 통합**: 기본은 Compose pgvector다. Supabase로 옮기려면 `RAG_COMPOSE_DATABASE_URL`만 설정하면 되며
+   ([RAG 가이드](../rag-mcp/README.md) 3장), RAG 표는 `adcheck_rag` schema에만 만든다. 옮길지와 관리 주체를 정한다.
+10. **체크포인트 키**: AI와 BE의 `INTERNAL_API_KEY`가 같아야 한다. Compose에서 맥의 BE는 `http://host.docker.internal:8080`.
 
 ## 주소와 상태 확인
 

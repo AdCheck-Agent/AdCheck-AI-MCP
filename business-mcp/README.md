@@ -1,6 +1,12 @@
 # Business MCP 외부검색
 
-Business 서비스는 Tavily Search API를 호출하고, 실제 MCP와 기존 HTTP API를 함께 제공합니다.
+Business 서비스는 두 MCP Tool을 제공합니다.
+
+| Tool | 역할 |
+|---|---|
+| `search_recent_issue` | Tavily Search API로 공개 사실 검색 (HTTP API도 함께 제공) |
+| `save_checkpoint` | 검수 단계 완료와 최종 결과를 BE에 저장 (`PATCH /api/v1/reviews/checkpoint`) |
+
 MCP SDK v1.30.0의 Streamable HTTP를 사용하며 두 경로는 같은 검색 함수를 호출합니다.
 Agent는 `BusinessMCPTransportClient`로 MCP Tool을 호출합니다. 기존 HTTP adapter(`BusinessMCPClient`)는 진단용으로 남겨 두었습니다.
 
@@ -18,11 +24,9 @@ Agent는 `BusinessMCPTransportClient`로 MCP Tool을 호출합니다. 기존 HTT
 | 실패·timeout | MCP `isError`와 구조화된 실패 상태를 전달. HTTP는 기존 502/503/504 유지 |
 | 결과 있음 | 판정 노드가 다시 평가, 결과 존재만으로 통과하지 않음 |
 
-RAG는 실제 검색을 지원하지만 현재 LLM 판정은 mock입니다.
-`POST /api/v1/reviews`만 호출하면 자동으로 검색어를 만들지 않으며,
-Tavily도 호출하지 않습니다. Agent 담당자가 실제 판정 노드에서 외부검색으로 확인 가능한 공개 사실에
-대해서만 `external_search_query`를 지정해야 합니다. 단순한 광고 의도 불명확·내부 정책 부족은
-검색어를 지정하지 않고 보류합니다.
+판정 노드(`review_llm`)는 근거가 부족하고 외부검색으로 확인할 수 있는 공개 사실일 때만 검색어를 만들고,
+검색어에서 개인정보를 지운 뒤 `external_search_query`로 넘깁니다. 근거가 충분하면 Tavily를 호출하지 않습니다.
+광고 의도 불명확이나 내부 정책 부족은 검색어 없이 보류합니다.
 
 ## 설정과 로컬 실행
 
@@ -88,8 +92,8 @@ async def search(query: str):
 ```
 
 MCP 세션과 Agent의 ReviewState는 별개입니다. 서버는 결과를 반환하며,
-파트 1의 client/검색 노드가 이를 검증해 `external_search_result`에 저장합니다.
-`related_criteria`는 전달 필드만 준비되어 있으며 현재 기본값 `[]`입니다. 태그를 생성하지 않습니다.
+Agent의 client·검색 노드가 이를 검증해 `external_search_result`에 저장합니다.
+`related_criteria`는 Business에서 항상 `[]`입니다. 관련 검수 기준 태그는 Agent 판정 단계가 만듭니다.
 
 ## HTTP Tool 계약
 
@@ -147,30 +151,41 @@ HTTP 504 (`timeout`)입니다. 오류 본문도 같은 SearchResult 모델을 �
 score는 관련성 점수이며 사실일 확률이 아닙니다. 기간 필터와 사건 발생일 확인은 이번 범위에 없습니다.
 모든 결과는 `content_check: not_checked`로 반환합니다.
 
+## `save_checkpoint` Tool 계약
+
+Agent가 검수 단계를 마칠 때마다 호출해 BE에 진행 상황을 저장합니다.
+
+- 입력: `original_text_id`(UUID, Agent 요청의 `review_id`), `checkpoint_level`, 선택 `result`
+- 단계: `BANNED_WORD_CHECK`, `SOCIAL_HISTORICAL_SEARCH`, `COMPANY_VALUES_SEARCH`, `EXTERNAL_SEARCH`,
+  `FINAL_ASSESSMENT`, `ALTERNATIVE_GENERATION`, `OUTPUT_VALIDATION`, `COMPLETED`
+- `result`(최종 `ReviewResponse`)는 `COMPLETED`에만 넣을 수 있습니다.
+- BE 호출: `PATCH {ADCHECK_BE_BASE_URL}/api/v1/reviews/checkpoint`, 헤더 `X-Internal-Key: {INTERNAL_API_KEY}`
+- 반환: `CheckpointResult`(`ok | timeout | unavailable | error`, HTTP 상태, BE 오류 코드). `ok`가 아니면 `isError: true`
+- Tool은 한 번만 보내고 스스로 재시도하지 않습니다. BE는 받은 단계로 덮어쓰므로, 늦게 도착한 재시도가 단계를 되돌릴 수 있기 때문입니다.
+  재시도는 Agent가 맡습니다. `retryable` 실패면 **다음 단계를 보내기 전에** 한 번만 다시 보내 순서를 지킵니다.
+- 내부 key는 설정에서만 읽고 Tool 인자로 받지 않습니다. 주소나 key가 없으면 네트워크 호출 없이 `unavailable`입니다.
+
+```dotenv
+ADCHECK_BE_BASE_URL=http://host.docker.internal:8080   # Compose 안에서 맥의 BE를 부를 때
+INTERNAL_API_KEY=<BE와 같은 값>
+CHECKPOINT_ENABLED=true                                # Agent 쪽 설정
+```
+
+Agent는 [checkpoint.py](../ai-agent/app/checkpoint.py)에서 이벤트를 큐에 쌓아 한 건씩 순서대로 보냅니다.
+노드는 기다리지 않으므로 BE가 느리거나 실패해도 검수는 계속됩니다. 실패·건너뛴 단계는 보내지 않고,
+실행 예외·시간 초과 시에는 `COMPLETED`를 보내지 않습니다. 끝내 저장하지 못한 단계는 로그(`checkpoint not saved`)에 남습니다.
+
 ## Agent 연결 위치
 
-이번 변경은 Business 서버·테스트·문서에 한정됩니다. 아래 Agent 경로는 기존 구현 위치이며,
-MCP로 전환할 때 파트 1이 수정할 부분입니다.
+- `app/clients/business_mcp_client.py`: `BusinessMCPTransportClient`(두 Tool), 진단용 HTTP adapter
+- `app/graph/nodes/retrieve_external_evidence.py`: 외부검색 Tool 호출과 Agent 측 시간 제한
+- `app/graph/graph.py`: 근거 부족 시 조건부 검색, 검색 후 재판정, 재검색 방지
+- `app/checkpoint.py`, `app/services/review.py`: 단계 이벤트를 `save_checkpoint`로 전달
+- `app/main.py`: client 생성과 그래프 주입
 
-- `app/graph/state.py`: query, attempted, result와 URL을 보존한 외부 근거
-- `app/graph/graph.py`: 근거 부족 시 조건부 검색, 검색 후 최종 판정, 재검색 방지
-- `app/graph/nodes/retrieve_external_evidence.py`: Tool 호출과 Agent 측 전체 시간 제한
-- `app/clients/business_mcp_client.py`: 독립적인 응답 모델과 HTTP adapter
-- `app/main.py`: httpx client lifecycle과 그래프 주입
-
-외부검색 후에는 성공·빈 결과·실패·timeout 모두 최종 판정 노드로 전달합니다.
-검색 노드는 `status`나 `summary`를 확정하지 않고, 기존 사회·역사 / 기업 가치 근거를 유지합니다.
-Agent client는 Business의 HTTP 502/503/504를 구분된 실패 상태로 읽어
-`external_search_result`에 보존합니다. 예상하지 못한 HTTP/응답 형식 오류도 `error`로 구분합니다.
-실패를 정상 빈 검색 결과로 바꾸지 않습니다.
-
-주윤님의 판정 노드가 기존 RAG 근거, `external_evidence`, `external_search_result`를 함께 보고
-최종 상태와 오류 처리를 결정합니다. 외부검색 결과가 비었다는 이유만으로 자동 보류하지 않습니다.
-현재 mock 판정은 계속 `needs_review`를 반환하며, 실제 최종 오류·판정 정책 연결은 주윤님 담당입니다.
-Backend/Frontend에는 `needs_review`가 정상 검수 결과이고 HTTP 오류와 구분된다는 계약을 유지합니다.
-원문과 검색 문구를 신뢰할 수 있는 실행 지시로 취급하지 않고 참고 데이터로만 사용해야 합니다.
-최종 API schema는 유지하며, 외부 근거를 findings.evidence로 변환하는 일은 실제 LLM 판정 구현 시
-추가합니다. 현재 mock 판정은 근거를 만들지 않습니다.
+외부검색 후에는 성공·빈 결과·실패·timeout 모두 판정 노드로 전달합니다. 검색 노드는 `status`를 확정하지 않고,
+실패를 정상 빈 결과로 바꾸지 않습니다. 외부검색 실패는 최종 결과의 `missing_information`에 남습니다.
+원문과 검색 결과는 실행 지시가 아니라 참고 데이터로만 사용합니다.
 
 검색 1회 제한은 하나의 graph 실행에 대한 정책입니다. 별도의 review 요청을 다시 보내거나
 Tool endpoint를 직접 다시 호출하면 각각 새 호출이므로 전역 rate limit은 아닙니다.
@@ -180,7 +195,7 @@ Tool endpoint를 직접 다시 호출하면 각각 새 호출이므로 전역 ra
 저장소 루트에서 실행합니다. 테스트는 fake key와 mock transport만 사용하며 Tavily를 호출하지 않습니다.
 
 ```bash
-python -m pytest business-mcp/tests ai-agent/tests/test_external_search.py -q
+python -m pytest business-mcp/tests ai-agent/tests/test_external_search.py ai-agent/tests/test_checkpoint.py -q
 python -m pytest -q
 python -m ruff check .
 python -m ruff format --check .
@@ -195,5 +210,9 @@ MCP 테스트는 SDK로 초기화·Tool 목록 조회·호출을 수행하고 �
 2026-10-22 수동 확인: MCP SDK → Business → 실제 Tavily를 중립적인 NASA 검색어로 1회 호출해
 `ok`, 결과 1개와 출처 메타데이터 반환을 확인했습니다. MCP 구간은 ASGI transport를 사용했으므로
 배포 환경의 포트·프록시 연결까지 검증한 것은 아닙니다.
+
+2026-10-23 수동 확인: Compose의 Business MCP로 "518 탱크데이 탁", "5·18 탱크데이 광고 문구 문제"를 검색해
+각각 3건 모두 해당 논란 보도·자료가 반환됐습니다(약 2초). 이미 보도된 사례라서 찾을 수 있는 것이며,
+새 문구는 외부검색만으로 문제 여부가 나오지 않습니다. 결과에는 뉴스 외 유튜브·나무위키도 섞입니다.
 
 Tavily 계약 참고: [공식 Search API](https://docs.tavily.com/documentation/api-reference/endpoint/search).
