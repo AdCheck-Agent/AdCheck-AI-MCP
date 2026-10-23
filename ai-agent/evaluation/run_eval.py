@@ -6,7 +6,7 @@ from collections import Counter
 from app.core.config import get_settings
 from app.llm.openai_model import create_openai_model
 
-from evaluation.harness import load_cases, run_case
+from evaluation.harness import load_cases, missing_quotes, run_case
 
 
 class RecordingModel:
@@ -33,12 +33,15 @@ def main() -> int:
         model.raw.clear()
         response = run_case(case, model)
         got = response.status
-        ok = got == case["expected_status"]
+        missed = missing_quotes(case, response)
+        ok = got in [case["expected_status"], *case.get("also_ok", [])] and not missed
         matched += ok
         confusion[(case["expected_status"], got)] += 1
         mark = "OK  " if ok else "FAIL"
         print(f"{mark} {case['id']:<12} expected={case['expected_status']:<12} got={got}")
         if not ok:
+            if missed:
+                print(f"     빠뜨린 표현: {missed}")
             print(f"     요약: {response.summary}")
             for finding in response.findings:
                 print(f"     지적: {finding.quote!r} / {finding.reason}")
