@@ -35,7 +35,8 @@ services:
     environment:
       RAG_DATABASE_URL: postgresql://${RAG_DB_USER:-adcheck}:${RAG_DB_PASSWORD:-adcheck}@pgvector:5432/${RAG_DB_NAME:-adcheck_rag}
       RAG_MODEL_CACHE: /models
-      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-BAAI/bge-m3}
+      RAG_EMBEDDING_DIM: ${RAG_EMBEDDING_DIM:-1024}
     volumes:
       - rag-models:/models
     depends_on:

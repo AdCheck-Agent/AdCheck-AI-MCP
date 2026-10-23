@@ -9,6 +9,7 @@ from rag_mcp.retrieval.vector_store import PgVectorStore
 
 class TestEmbeddings:
     profile = "test-only:384"
+    dim = 384
 
     async def split(self, text: str) -> list[str]:
         return [text[i : i + 100] for i in range(0, len(text), 100)]

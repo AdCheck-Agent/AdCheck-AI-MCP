@@ -14,7 +14,7 @@ Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 �
 | ai-agent | 8000 | 입력 검증, 금기어 필터, LangGraph, 응답 검증 |
 | rag-mcp | 8001 | pgvector 검색, CSV/XLSX 기업 문서 처리, 실제 MCP |
 | business-mcp | 8002 | Tavily 외부검색 MCP·HTTP, 상세는 별도 가이드 |
-| pgvector | 5433 | PostgreSQL 18 / vector(384), 기업별 문서·chunk 저장 |
+| pgvector | 5433 | PostgreSQL 18 / vector(1024), 기업별 문서·chunk 저장 |
 
 `rag-mcp`는 실제 MCP `/mcp`와 검색·문서 관리 REST API를 제공합니다.
 구현·실행·업로드 컬럼은 [RAG 가이드](rag-mcp/README.md)를 확인하세요.
