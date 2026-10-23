@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field, ValidationError
 from app.graph.nodes.rule_filter import normalize
 from app.graph.state import ReviewState
 from app.llm.client import ReviewModel
+from app.llm.criteria import criteria_for_prompt, criteria_texts
 from app.llm.evidence import to_evidence
 from app.schemas.review import Category, Evidence, Finding, Severity
 
@@ -48,6 +49,9 @@ evidence_sufficient는 판단에 쓸 근거가 있으면 true이고, \
 8. 근거가 부족한데 최근 공개 사실을 웹에서 확인하면 판단할 수 있을 때만 \
 external_search_query에 검색어 한 줄을 쓰세요. 광고 문구 전체나 개인정보를 넣지 말고, \
 필요 없으면 null로 두세요.
+8-1. <criteria>는 사용자에게 보여 줄 검수 기준 목록입니다. finding마다 그 표현이 \
+직접 해당하는 기준의 id만 criteria_ids에 넣으세요. 해당하는 기준이 없으면 빈 배열로 두고, \
+목록에 없는 id를 만들지 마세요.
 9. 응답은 JSON 객체 하나만 출력하세요. 설명 문장이나 코드 블록을 붙이지 마세요.
 """
 
@@ -66,6 +70,7 @@ discrimination_and_hate | labor_and_human_rights | external_partner_risk | corpo
       "quote": "광고 원문 중 검토가 필요한 표현",
       "reason": "왜 확인이 필요한지",
       "evidence_ids": ["S1"],
+      "criteria_ids": ["K1"],
       "needs_human_review": false
     }
   ]
@@ -81,6 +86,7 @@ class JudgedFinding(BaseModel):
     quote: str = Field(min_length=1)
     reason: str = Field(min_length=1)
     evidence_ids: list[str] = Field(default_factory=list)
+    criteria_ids: list[str] = Field(default_factory=list)
     needs_human_review: bool = False
 
 
@@ -129,6 +135,7 @@ def build_user_prompt(state: ReviewState, catalog: list[CatalogItem]) -> str:
         f"<ad_text>\n{state['source_text']}\n</ad_text>\n\n"
         f"<rule_hits>\n{json.dumps(hits, ensure_ascii=False)}\n</rule_hits>\n\n"
         f"<evidence>\n{json.dumps(evidence, ensure_ascii=False)}\n</evidence>\n\n"
+        f"<criteria>\n{json.dumps(criteria_for_prompt(), ensure_ascii=False)}\n</criteria>\n\n"
         f"{OUTPUT_FORMAT}"
     )
 
@@ -170,9 +177,11 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
 
     source = normalize(state["source_text"])
     findings: list[Finding] = []
+    criteria_ids: list[str] = []
     for judged in judgment.findings:
         if normalize(judged.quote) not in source:
             continue
+        criteria_ids += judged.criteria_ids
         evidence = [by_id[i] for i in dict.fromkeys(judged.evidence_ids) if i in by_id]
         findings.append(
             Finding(
@@ -204,6 +213,7 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
         "evidence_sufficient": sufficient,
         "risk": risk,
         "findings": findings,
+        "related_criteria": criteria_texts(criteria_ids) if findings else [],
         "summary": judgment.summary,
     }
 

@@ -39,6 +39,7 @@ class ReviewState(TypedDict):
     risk: Literal["yes", "no", "uncertain"]
     status: NotRequired[Status]
     findings: list[Finding]
+    related_criteria: NotRequired[list[str]]
     summary: str
     trace_id: str
 
@@ -60,6 +61,7 @@ def initial_state(request: ReviewRequest) -> ReviewState:
         evidence_sufficient=False,
         risk="uncertain",
         findings=[],
+        related_criteria=[],
         summary="",
         trace_id=f"trace_{uuid4().hex}",
     )

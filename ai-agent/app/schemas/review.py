@@ -58,4 +58,5 @@ class ReviewResponse(BaseModel):
     status: Status
     summary: str = Field(min_length=1)
     findings: list[Finding]
+    related_criteria: list[str] = Field(default_factory=list)
     trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")

@@ -75,6 +75,9 @@ def validate_result(state: ReviewState) -> dict:
             reasons.append("첨부 문서를 전부 불러오지 못했는데 통과 처리됨")
 
     update: dict = {}
+    if state.get("related_criteria") and (not kept or status == "pass"):
+        # Criteria explain findings; with no finding left there is nothing to explain.
+        update["related_criteria"] = []
     if len(kept) != len(state["findings"]):
         update["findings"] = kept
 
