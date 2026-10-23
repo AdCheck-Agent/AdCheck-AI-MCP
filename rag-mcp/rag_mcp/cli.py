@@ -1,6 +1,8 @@
 import argparse
 import asyncio
 import json
+import math
+import time
 from pathlib import Path
 
 from rag_mcp.config import ROOT, Settings
@@ -9,9 +11,45 @@ from rag_mcp.retrieval.embeddings import LocalEmbeddings
 from rag_mcp.retrieval.vector_store import PgVectorStore
 
 
+async def check_embedding(settings: Settings, embeddings: LocalEmbeddings) -> None:
+    """Load the configured model once and report what it produces. No database needed."""
+    texts = [
+        "5월 18일 기념 탱크데이 특가",
+        "5·18 기념일에 맞춘 탱크데이 할인",
+        "봄맞이 신메뉴 출시",
+    ]
+    started = time.perf_counter()
+    vectors = await embeddings.embed(texts)
+    seconds = round(time.perf_counter() - started, 1)
+
+    def cosine(a: list[float], b: list[float]) -> float:
+        return sum(x * y for x, y in zip(a, b, strict=True))
+
+    pieces = await embeddings.split("광고 문구 " * 600)
+    print(
+        json.dumps(
+            {
+                "model": settings.rag_embedding_model,
+                "dim": len(vectors[0]),
+                "expected_dim": settings.rag_embedding_dim,
+                "norm": round(math.sqrt(cosine(vectors[0], vectors[0])), 4),
+                "similar_pair": round(cosine(vectors[0], vectors[1]), 3),
+                "unrelated_pair": round(cosine(vectors[0], vectors[2]), 3),
+                "first_load_and_embed_seconds": seconds,
+                "chunk_tokens": settings.rag_chunk_tokens,
+                "chunks_for_long_text": len(pieces),
+            },
+            ensure_ascii=False,
+        )
+    )
+
+
 async def execute(args: argparse.Namespace) -> None:
     settings = Settings()
     embeddings = LocalEmbeddings(settings)
+    if args.command == "check-embedding":
+        await check_embedding(settings, embeddings)
+        return
     store = PgVectorStore(settings, embeddings)
     if args.command == "init-db":
         await store.initialize()
@@ -32,6 +70,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="AdCheck pgvector schema / corpus management")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("init-db")
+    commands.add_parser("check-embedding", help="Load the embedding model and print a summary")
     social = commands.add_parser("ingest-social")
     social.add_argument("--data-dir", type=Path, default=ROOT / "rag-mcp" / "data")
     corporate = commands.add_parser("ingest-corporate")

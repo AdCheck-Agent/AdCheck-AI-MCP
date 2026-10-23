@@ -23,8 +23,32 @@ def token_windows(count: int, limit: int, overlap: int) -> list[tuple[int, int]]
     ]
 
 
+def register_if_unsupported(settings: Settings) -> None:
+    """Register models FastEmbed does not list itself (BAAI/bge-m3) as custom ONNX models.
+
+    bge-m3 dense vectors are the CLS token of the last layer, L2-normalised. Weights are the
+    official ONNX export in the model repository (graph file plus one external-data file).
+    """
+    from fastembed import TextEmbedding
+    from fastembed.common.model_description import ModelSource, PoolingType
+
+    name = settings.rag_embedding_model
+    if name in {m["model"] for m in TextEmbedding.list_supported_models()}:
+        return
+    TextEmbedding.add_custom_model(
+        model=name,
+        pooling=PoolingType.CLS,
+        normalization=True,
+        sources=ModelSource(hf=name),
+        dim=settings.rag_embedding_dim,
+        model_file="onnx/model.onnx",
+        additional_files=["onnx/model.onnx_data"],
+    )
+
+
 class Embeddings(Protocol):
     profile: str
+    dim: int
 
     async def embed(self, texts: list[str]) -> list[list[float]]: ...
 
@@ -37,6 +61,7 @@ class LocalEmbeddings:
     def __init__(self, settings: Settings):
         self.settings = settings
         self.profile = settings.embedding_profile
+        self.dim = settings.rag_embedding_dim
         self._lock = threading.Lock()
         self._model = None
         self._tokenizer = None
@@ -49,6 +74,7 @@ class LocalEmbeddings:
         from tokenizers import Tokenizer
 
         cache = str(self.settings.rag_model_cache)
+        register_if_unsupported(self.settings)
         model = TextEmbedding(model_name=self.settings.rag_embedding_model, cache_dir=cache)
         path = hf_hub_download(self.settings.rag_embedding_model, "tokenizer.json", cache_dir=cache)
         tokenizer = Tokenizer.from_file(path)
@@ -64,7 +90,8 @@ class LocalEmbeddings:
         try:
             vectors = await asyncio.to_thread(self._embed, texts)
             if len(vectors) != len(texts) or any(
-                len(v) != 384 or not all(math.isfinite(x) for x in v) or not any(v) for v in vectors
+                len(v) != self.dim or not all(math.isfinite(x) for x in v) or not any(v)
+                for v in vectors
             ):
                 raise ValueError("임베딩 개수·차원·유효값 불일치")
             return vectors
