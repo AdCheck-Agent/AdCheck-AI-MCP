@@ -4,7 +4,7 @@ SNS 광고 문구의 사회·역사적 논란 가능성과 기업 가치와의 �
 Python 3.12, FastAPI, Pydantic v2, LangGraph, httpx를 사용하며, venv + pip로 환경을 관리합니다.
 Spring Boot Backend와 Frontend는 별도 프로젝트이며 이 저장소에 포함하지 않습니다.
 
-**RAG 적재·검색과 Business 외부검색은 실제로 동작하고, Agent는 설정에 따라 실제 RAG를 호출합니다. LLM 판정은 아직 mock입니다.** API key 없이 실행되며, 검수 API는
+**RAG 적재·검색과 Business 외부검색은 실제로 동작하고, Agent는 설정에 따라 실제 RAG를 호출합니다. LLM 판정은 아직 mock입니다.** API key 없이 실행되며, mock 검수 실행 결과는
 `[MOCK]` 요약과 `needs_review`를 반환합니다. 근거가 없는 상태에서 통과나 위반을 확정하지 않습니다.
 
 ## 서비스 구성
@@ -143,6 +143,8 @@ curl -fsS http://localhost:8000/api/v1/reviews \
 ## Spring Boot 연동 계약
 
 Backend는 AI Agent의 `POST http://localhost:8000/api/v1/reviews`를 JSON으로 호출합니다.
+Agent는 **HTTP 202 접수 응답을 먼저 전송하고 FastAPI BackgroundTasks에서 검수를 실행**합니다.
+Spring은 전체 검수 실행이 끝날 때까지 이 요청의 응답을 기다리지 않습니다.
 컨테이너 / 원격 환경에서는 실제 Agent 주소를 설정합니다. Backend 컨테이너 내부의
 `localhost`는 Backend 자신이므로 Agent 주소로 사용하면 안 됩니다.
 
@@ -165,7 +167,26 @@ Backend는 AI Agent의 `POST http://localhost:8000/api/v1/reviews`를 JSON으로
   주면 해당 문서 전체를 기업 근거로 사용하고, 없으면 기업 전체에서 유사도 검색합니다.
 - 입력 오류: FastAPI 기본 `422` validation response
 
-현재 응답 예시 (`trace_id`는 요청마다 새로 생성):
+접수 응답 예시 (HTTP 202, `trace_id`는 요청마다 새로 생성):
+
+```json
+{
+  "status": "accepted",
+  "trace_id": "trace_0123456789abcdef0123456789abcdef"
+}
+```
+
+작업 ID, 상태 조회 API, SQLite 작업 저장소는 사용하지 않습니다.
+검수 실행·결과 검증은 `app/services/review.py`의 `run_review`에서 수행합니다.
+최종 결과 전달용 SSE는 다른 브랜치에서 별도로 연결하며, 이 변경에 SSE 구현을 포함하지 않습니다.
+BackgroundTasks의 반환값은 HTTP로 자동 전송되지 않으므로 해당 브랜치에서 결과 전달을 연결해야 합니다.
+
+완료 상태·시간 초과·실행 오류는 `trace_id`와 함께 로그에 남깁니다.
+이미 202를 전송했으므로 실행 오류를 같은 요청의 HTTP 500/504로 반환하지 않습니다.
+`REVIEW_TIMEOUT_SECONDS`는 백그라운드 검수의 제한 시간으로 기본 60초입니다.
+실행은 서버 프로세스 내부에서 이루어지며, 재시작 후 작업 복구는 제공하지 않습니다.
+
+검수 실행 결과 구조 예시 (접수 응답과 별개):
 
 ```json
 {

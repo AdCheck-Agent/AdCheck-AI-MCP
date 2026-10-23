@@ -319,6 +319,7 @@ pgvector 데이터는 named volume에 유지됩니다. `down -v`는 볼륨 데�
 | `RAG_MAX_UPLOAD_BYTES`, `RAG_MAX_ROWS` | 기업 문서 업로드 크기·행 수 한도 |
 | `RAG_MAX_ATTACHED_CHARS` | 첨부 문서 전체 반환 시 본문 합계 상한. 넘으면 `too_large` |
 | `HTTP_TIMEOUT_SECONDS` | Agent의 RAG MCP 호출 timeout |
+| `REVIEW_TIMEOUT_SECONDS` | 백그라운드 검수 제한 시간, 기본 60초. 초과 시 `review_timeout` 로그 기록 |
 | `LOG_LEVEL` | Agent 로깅 수준 |
 | `TAVILY_API_KEY`, `TAVILY_TIMEOUT_SECONDS`, `TAVILY_MAX_RESULTS` | Business 외부검색 key·시간·결과 수 제한 |
 
@@ -336,6 +337,8 @@ RAG / Business 로컬 실행 포트는 `.env`가 아닌 위 명령의 `--port`�
 ## 10. API 호출과 Backend 연동
 
 Backend가 호출할 API는 **`POST /api/v1/reviews`**입니다.
+요청 JSON 검증 후 HTTP 202로 `{"status":"accepted","trace_id":"trace_..."}`를 먼저 반환하고,
+FastAPI BackgroundTasks에서 검수를 실행합니다.
 현재 이 저장소에는 결과 저장, 이력 조회, 재검수 전용 endpoint가 없습니다.
 같은 API에 수정한 문구를 다시 보내면 새 `trace_id`로 검수합니다.
 
@@ -353,9 +356,15 @@ curl -fsS http://localhost:8000/api/v1/reviews \
 입력 오류는 현재 FastAPI 기본 HTTP 422 응답을 사용합니다.
 Backend가 기대하는 오류 형식이 있다면 별도로 합의해 구현해야 합니다.
 
-응답 계약은 [ReviewResponse](ai-agent/app/schemas/review.py)와 `/docs`를 기준으로 합니다.
-`status`, `summary`, `findings`, `trace_id`를 유지합니다.
+접수 응답은 [ReviewAccepted](ai-agent/app/schemas/review.py)와 `/docs`를 기준으로 합니다.
+최종 결과 모델 `ReviewResponse`의 `status`, `summary`, `findings`, `related_criteria`, `trace_id`는 유지합니다.
 각 finding은 유형, 위험도, 원문, 이유, 근거, 선택 수정안, 사람 검토 필요 여부를 갖습니다.
+
+검수 실행 함수는 `app/services/review.py`의 `run_review`입니다.
+최종 결과 전달용 SSE는 별도 브랜치에서 연결하며, BackgroundTasks 반환값이 자동 전송되지는 않습니다.
+현재 실행 완료·실패·시간 초과는 trace_id와 함께 로그에 기록됩니다.
+202를 전송한 뒤 발생한 오류는 같은 요청의 HTTP 500/504로 바꿀 수 없습니다.
+작업 ID·조회 API·영속 작업 큐는 없으며 서버 재시작 후 실행 복구도 제공하지 않습니다.
 
 RAG 검색 REST를 직접 확인하려면:
 

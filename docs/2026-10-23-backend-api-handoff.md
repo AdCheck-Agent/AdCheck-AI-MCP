@@ -16,7 +16,7 @@ BE ──② POST 검수 요청────────────▶ ai-agent 
 | ① | `PUT /api/v1/companies/{company_id}/documents/{document_id}` | BE → RAG | 기업 문서 등록·교체 |
 | ① | `GET /api/v1/companies/{company_id}/documents/{document_id}` | BE → RAG | 등록 상태 조회 |
 | ① | `DELETE /api/v1/companies/{company_id}/documents/{document_id}` | BE → RAG | 문서 삭제 |
-| ② | `POST /api/v1/reviews` | BE → Agent | 광고 문구 검수 |
+| ② | `POST /api/v1/reviews` | BE → Agent | HTTP 202 접수 응답 후 백그라운드 검수 |
 | - | `GET /health`, `GET /ready`(RAG만) | BE → 각 서비스 | 상태 확인 |
 
 BE는 RAG의 검색 API(`/tools/*`, `/mcp`)와 Business-MCP를 직접 호출하지 않는다. Agent가 내부에서 호출한다.
@@ -120,7 +120,24 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
 - 첨부 문서 본문 합계가 30,000자를 넘으면 기업 근거 없이 처리된다. 사람 검토로 보내는 방향으로 파트 1과 맞추는 중이다.
 - 알 수 없는 필드를 보내면 `422`가 난다.
 
-응답 예시 (LLM 판정은 아직 mock이라 현재는 항상 `needs_review`):
+접수 응답 예시 (HTTP 202):
+
+```json
+{
+  "status": "accepted",
+  "trace_id": "trace_0123456789abcdef0123456789abcdef"
+}
+```
+
+- Agent는 접수 응답을 먼저 전송하고 FastAPI BackgroundTasks에서 검수를 실행한다.
+- 작업 ID, 상태 조회 API, SQLite 큐는 사용하지 않는다. 입력 JSON 형식은 유지한다.
+- 검수 결과 모델은 기존 형식을 유지한다. 최종 결과 전달용 SSE는 다른 브랜치에서 별도로 연결한다.
+- 실행 함수는 `app/services/review.py`의 `run_review`다. BackgroundTasks의 반환값은 자동 전송되지 않는다.
+- 실행 제한은 `REVIEW_TIMEOUT_SECONDS`(기본 60초)이며, 완료 상태·실행 오류·시간 초과는 trace_id로 로그에 남긴다.
+- 입력 오류는 기존 HTTP 422다. 202 응답 후 실행 오류를 같은 요청의 HTTP 500/504로 반환하지 않는다.
+- 서버 프로세스 내부에서 실행하므로 서버 재시작 후 작업 복구는 제공하지 않는다.
+
+검수 결과 구조 예시 (접수 응답과 별개):
 
 ```json
 {
