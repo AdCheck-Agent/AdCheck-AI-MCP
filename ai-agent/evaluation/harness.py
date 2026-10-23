@@ -51,3 +51,9 @@ def run_case(case: dict, model: ReviewModel | None) -> ReviewResponse:
             return ReviewResponse.model_validate(result)
     finally:
         set_review_model(None)
+
+
+def missing_quotes(case: dict, response: ReviewResponse) -> list[str]:
+    """Expected quotes that no finding points at (a risky phrase the model overlooked)."""
+    found = " ".join(f.quote for f in response.findings)
+    return [q for q in case.get("expected_quotes", []) if q not in found]

@@ -20,6 +20,8 @@ SYSTEM_PROMPT = """\
 2. 각 finding의 quote를 대체할 수 있는 수정 표현(suggestion)을 하나씩 제안하세요.
 3. 원래 광고의 목적과 핵심 혜택(할인, 이벤트 등)은 유지하고, 문제가 되는 표현만 바꾸세요.
 4. 원래 quote나 <rule_hits>에 있는 금기어를 수정 표현에 다시 쓰지 마세요.
+4-1. 같은 광고에 남는 다른 부분(행사명, 날짜 등)과 합쳐졌을 때도 같은 사건이 \
+연상되지 않아야 합니다. 다른 finding의 quote에 있는 표현도 쓰지 마세요.
 5. 특정 역사적 사건, 날짜, 상징을 연상시키는 표현으로 바꾸지 마세요.
 6. 자연스러운 한국어 광고 문구로 쓰고, 설명이나 사족은 붙이지 마세요.
 7. 응답은 JSON 객체 하나만 출력하세요.
@@ -93,7 +95,7 @@ def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] 
         if not suggestion:
             return None
         normalized = normalize(suggestion)
-        reused = [normalize(finding.quote), *banned]
+        reused = [normalize(f.quote) for f in state["findings"]] + banned
         if any(term and term in normalized for term in reused):
             return None
         result.append(finding.model_copy(update={"suggestion": suggestion}))

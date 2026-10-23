@@ -1,5 +1,5 @@
 import pytest
-from evaluation.harness import load_cases, run_case
+from evaluation.harness import load_cases, missing_quotes, run_case
 
 CASES = load_cases()
 
@@ -25,6 +25,7 @@ def test_eval_set_is_large_and_covers_every_status() -> None:
 def test_case_reaches_expected_status(case: dict) -> None:
     response = run_case(case, ScriptedModel(case["scripted"]))
     assert response.status == case["expected_status"], response.summary
+    assert missing_quotes(case, response) == []
     if response.status == "revise":
         assert all(f.suggestion and f.evidence for f in response.findings)
     if response.status == "pass":
