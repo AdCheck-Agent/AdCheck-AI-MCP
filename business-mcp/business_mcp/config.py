@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     tavily_api_key: SecretStr | None = None
     tavily_timeout_seconds: float = Field(default=5, gt=0, le=5)
     tavily_max_results: int = Field(default=3, ge=1, le=3)
+    adcheck_be_base_url: str | None = None
+    internal_api_key: SecretStr | None = None
+    checkpoint_timeout_seconds: float = Field(default=5, gt=0, le=10)
 
 
 @lru_cache

@@ -10,6 +10,7 @@ services:
       RAG_MCP_URL: http://rag-mcp:8001
       RAG_RETRIEVAL_ENABLED: "true"
       BUSINESS_MCP_URL: http://business-mcp:8002
+      CHECKPOINT_ENABLED: ${CHECKPOINT_ENABLED:-false}
       HTTP_TIMEOUT_SECONDS: ${HTTP_TIMEOUT_SECONDS:-10}
       REVIEW_TIMEOUT_SECONDS: ${REVIEW_TIMEOUT_SECONDS:-60}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
@@ -58,6 +59,8 @@ services:
       TAVILY_API_KEY: ${TAVILY_API_KEY:-}
       TAVILY_TIMEOUT_SECONDS: ${TAVILY_TIMEOUT_SECONDS:-5}
       TAVILY_MAX_RESULTS: ${TAVILY_MAX_RESULTS:-3}
+      ADCHECK_BE_BASE_URL: ${ADCHECK_BE_BASE_URL:-}
+      INTERNAL_API_KEY: ${INTERNAL_API_KEY:-}
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=3)"]
       interval: 10s

@@ -35,6 +35,22 @@ def _check_finding(
     return None
 
 
+def _missing_information(state: ReviewState) -> list[str]:
+    """Gaps a person should know about: what the review could not check."""
+    missing: list[str] = []
+    errors = state["rag_errors"]
+    if "COMPANY_NOT_SPECIFIED" in errors:
+        missing.append("기업 ID가 없어 기업 가치 기준은 검토하지 못했습니다.")
+    if any(code.endswith("_FAILED") for code in errors):
+        missing.append("근거 검색에 실패해 일부 기준을 확인하지 못했습니다.")
+    for name in oversized_sources(state):
+        missing.append(f"{name} 첨부 문서가 너무 커서 전부 불러오지 못했습니다.")
+    external = state["external_search_result"]
+    if state["external_search_attempted"] and external is not None and external.status != "ok":
+        missing.append("외부 검색에 실패해 최신 사실을 확인하지 못했습니다.")
+    return missing
+
+
 def validate_result(state: ReviewState) -> dict:
     """Last gate before the response leaves the agent.
 
@@ -75,6 +91,9 @@ def validate_result(state: ReviewState) -> dict:
             reasons.append("첨부 문서를 전부 불러오지 못했는데 통과 처리됨")
 
     update: dict = {}
+    missing = _missing_information(state)
+    if missing:
+        update["missing_information"] = missing
     if state.get("related_criteria") and (not kept or status == "pass"):
         # Criteria explain findings; with no finding left there is nothing to explain.
         update["related_criteria"] = []

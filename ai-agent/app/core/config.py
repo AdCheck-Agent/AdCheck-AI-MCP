@@ -14,6 +14,7 @@ class Settings(BaseSettings):
     rag_mcp_url: HttpUrl = HttpUrl("http://localhost:8001")
     rag_retrieval_enabled: bool = False
     business_mcp_url: HttpUrl = HttpUrl("http://localhost:8002")
+    checkpoint_enabled: bool = False
     http_timeout_seconds: float = Field(default=10, gt=0)
     review_timeout_seconds: float = Field(default=60, gt=0)
     log_level: str = "INFO"

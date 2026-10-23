@@ -63,3 +63,39 @@ async def test_unreachable_server_is_reported_as_value_error() -> None:
     client = BusinessMCPTransportClient("http://127.0.0.1:9/mcp", timeout=1)
     with pytest.raises((ValueError, TimeoutError)):
         await client.search_recent_issue("확인할 사실")
+
+
+async def test_save_checkpoint_goes_through_mcp_to_the_backend(monkeypatch) -> None:
+    import json
+
+    import business_mcp.tools.save_checkpoint as tool_module
+
+    seen = []
+
+    def backend(request: httpx.Request) -> httpx.Response:
+        seen.append((request.method, request.url.path, json.loads(request.content)))
+        return httpx.Response(200, json={"message": "ok"})
+
+    real = tool_module.httpx.AsyncClient
+    monkeypatch.setattr(
+        tool_module.httpx,
+        "AsyncClient",
+        lambda **kw: real(**{**kw, "transport": httpx.MockTransport(backend)}),
+    )
+    settings = Settings(_env_file=None, adcheck_be_base_url="http://be:8080", internal_api_key="k")
+    app = create_app(settings)
+    async with app.router.lifespan_context(app):
+        async with real(
+            transport=httpx.ASGITransport(app=app), base_url="http://localhost:8002"
+        ) as http:
+            client = BusinessMCPTransportClient("http://localhost:8002/mcp", http_client=http)
+            id_ = "550e8400-e29b-41d4-a716-446655440000"
+            result = await client.save_checkpoint(id_, "FINAL_ASSESSMENT")
+    assert result.status == "ok"
+    assert seen == [
+        (
+            "PATCH",
+            "/api/v1/reviews/checkpoint",
+            {"original_text_id": id_, "checkpoint_level": "FINAL_ASSESSMENT"},
+        )
+    ]
