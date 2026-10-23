@@ -11,6 +11,9 @@ from app.llm.client import ReviewModel, set_review_model
 from app.schemas.review import Evidence, ReviewRequest, ReviewResponse
 
 CASES_PATH = Path(__file__).parent / "cases.json"
+# Bump when real-model cases are added or their expectations change, so before/after runs compare
+# the same set.
+EVAL_SET_VERSION = "v3"
 
 
 def load_cases() -> list[dict]:
