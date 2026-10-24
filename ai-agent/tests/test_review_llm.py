@@ -199,7 +199,8 @@ def test_graph_end_to_end_with_model_and_evidence(
         '{"suggestions": [{"index": 0, "suggestion": "봄맞이 감사 할인"},'
         ' {"index": 1, "suggestion": "지금 만나보세요"}]}'
     )
-    set_review_model(FakeModel(raw, alternative))
+    clean = judgment(risk="no", findings=[])  # the fixed ad, judged again
+    set_review_model(FakeModel(raw, alternative, clean))
     graph = graph_module.build_graph()
     result = graph.invoke(initial_state(ReviewRequest(text=text, context={"channel": "sns"})))
     assert ReviewResponse.model_validate(result).status == expected

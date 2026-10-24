@@ -2,6 +2,7 @@ import pytest
 from evaluation.harness import load_cases, missing_quotes, run_case
 
 CASES = load_cases()
+CLEAN = '{"risk": "no", "evidence_sufficient": true, "summary": "위험 없음", "findings": []}'
 
 
 class ScriptedModel:
@@ -23,7 +24,10 @@ def test_eval_set_is_large_and_covers_every_status() -> None:
 
 @pytest.mark.parametrize("case", CASES, ids=[c["id"] for c in CASES])
 def test_case_reaches_expected_status(case: dict) -> None:
-    response = run_case(case, ScriptedModel(case["scripted"]))
+    script = list(case["scripted"])
+    if case["expected_status"] == "revise":
+        script.append(CLEAN)  # the fixed ad is judged again and found safe
+    response = run_case(case, ScriptedModel(script))
     assert response.status == case["expected_status"], response.summary
     assert missing_quotes(case, response) == []
     if response.status == "revise":
