@@ -15,7 +15,10 @@ from rag_mcp.errors import DocumentError
 from rag_mcp.retrieval.embeddings import Embeddings
 from rag_mcp.schemas import Chunk, DocumentRecord, PolicyRow
 
-COLUMNS = list(PolicyRow.model_fields)
+# The URL (or a sample's path) names the company and document. Older files may still carry
+# these two columns; they are accepted but their values are ignored.
+IDENTITY = ("company_id", "document_id")
+COLUMNS = [name for name in PolicyRow.model_fields if name not in IDENTITY]
 MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)\s]+\)")
 
 
@@ -66,12 +69,27 @@ def _table(filename: str, data: bytes, settings: Settings) -> list[list]:
         ) from exc
 
 
-def parse_policies(filename: str, data: bytes, settings: Settings) -> list[PolicyRow]:
+def sample_identity(path: Path) -> tuple[str, str]:
+    """IDs for a repository sample: data/corporate/{company_id}/{type}.csv -> company-type."""
+    return path.parent.name, f"{path.parent.name}-{path.stem}"
+
+
+def parse_policies(
+    filename: str, data: bytes, settings: Settings, company_id: str, document_id: str
+) -> list[PolicyRow]:
+    """Read one corporate file. company_id/document_id come from the caller, never the file."""
+    try:
+        PolicyRow.model_validate(
+            {"row_id": "x", "document_type": "corporate_values", "title": "x", "section": "x"}
+            | {"content": "x", "company_id": company_id, "document_id": document_id}
+        )
+    except ValidationError as exc:
+        raise DocumentError("기업·문서 ID 형식을 확인하세요.", "INVALID_IDENTITY") from exc
     table = _table(filename, data, settings)
     if not table:
         raise DocumentError("헤더와 최소 한 개의 정책 행이 필요합니다.")
     header = [str(x).strip() if x is not None else "" for x in table[0]]
-    if len(set(header)) != len(header) or set(header) != set(COLUMNS):
+    if len(set(header)) != len(header) or set(header) - set(IDENTITY) != set(COLUMNS):
         raise DocumentError(f"컬럼을 확인하세요. 필수 헤더: {', '.join(COLUMNS)}")
     rows = []
     seen = set()
@@ -80,7 +98,10 @@ def parse_policies(filename: str, data: bytes, settings: Settings) -> list[Polic
             continue
         if len(values) != len(header):
             raise DocumentError(f"{number}행: 컬럼 수가 헤더와 다릅니다.")
-        obj = dict(zip(header, values, strict=True))
+        obj = dict(zip(header, values, strict=True)) | {
+            "company_id": company_id,
+            "document_id": document_id,
+        }
         for key in ("source_url", "published_at"):
             if obj[key] in (None, ""):
                 obj[key] = None
@@ -97,9 +118,11 @@ def parse_policies(filename: str, data: bytes, settings: Settings) -> list[Polic
         rows.append(row)
     if not rows:
         raise DocumentError("최소 한 개의 정책 행이 필요합니다.")
-    identity = ("company_id", "document_id", "document_type", "title")
-    if any(any(getattr(r, key) != getattr(rows[0], key) for key in identity) for r in rows):
-        raise DocumentError("한 파일에는 같은 기업·문서·유형·제목만 넣으세요.")
+    if any(
+        any(getattr(r, key) != getattr(rows[0], key) for key in ("document_type", "title"))
+        for r in rows
+    ):
+        raise DocumentError("한 파일에는 같은 문서 유형·제목만 넣으세요.")
     return rows
 
 

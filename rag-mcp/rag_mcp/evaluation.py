@@ -12,7 +12,12 @@ import time
 from pathlib import Path
 
 from rag_mcp.config import ROOT, Settings
-from rag_mcp.documents import corporate_document, parse_policies, social_documents
+from rag_mcp.documents import (
+    corporate_document,
+    parse_policies,
+    sample_identity,
+    social_documents,
+)
 from rag_mcp.retrieval.embeddings import Embeddings, LocalEmbeddings
 from rag_mcp.retrieval.vector_store import PgVectorStore
 from rag_mcp.schemas import RetrievedEvidence
@@ -115,7 +120,7 @@ async def load_corpus(store: PgVectorStore, embeddings: Embeddings, settings: Se
         await store.replace(document)
         counts["social"] += 1
     for path in sorted((DATA / "corporate").glob("*/*.csv")):
-        rows = parse_policies(path.name, path.read_bytes(), settings)
+        rows = parse_policies(path.name, path.read_bytes(), settings, *sample_identity(path))
         await store.replace(await corporate_document(rows, embeddings))
         counts["corporate"] += 1
     return counts

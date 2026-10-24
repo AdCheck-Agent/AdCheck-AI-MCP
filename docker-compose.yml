@@ -34,7 +34,8 @@ services:
     ports:
       - "${RAG_MCP_PORT:-8001}:8001"
     environment:
-      RAG_DATABASE_URL: postgresql://${RAG_DB_USER:-adcheck}:${RAG_DB_PASSWORD:-adcheck}@pgvector:5432/${RAG_DB_NAME:-adcheck_rag}
+      # Unset: the bundled pgvector. Set RAG_COMPOSE_DATABASE_URL to use an external DB (e.g. Supabase).
+      RAG_DATABASE_URL: ${RAG_COMPOSE_DATABASE_URL:-postgresql://${RAG_DB_USER:-adcheck}:${RAG_DB_PASSWORD:-adcheck}@pgvector:5432/${RAG_DB_NAME:-adcheck_rag}}
       RAG_MODEL_CACHE: /models
       RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-BAAI/bge-m3}
       RAG_EMBEDDING_DIM: ${RAG_EMBEDDING_DIM:-1024}

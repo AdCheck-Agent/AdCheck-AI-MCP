@@ -1,9 +1,9 @@
-﻿row_id,company_id,document_id,document_type,title,section,content,source_url,published_at
-seojun_roasters-corporate_values-001,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,고객 존중,커피 지식·가격·직업·경제적 형편으로 고객의 인격과 방문 자격을 평가하지 않는다. 저렴한 상품을 선택하는 사람을 조롱하지 않는다.,,
-seojun_roasters-corporate_values-002,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,직원·구직자 존중,바리스타·아르바이트·배달 노동자·구직자를 하찮은 사람으로 표현하지 않는다. 특정 성별과 외모를 고객응대 능력의 기준으로 삼지 않는다.,,
-seojun_roasters-corporate_values-003,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,역사·지역사회 존중,역사적 기념일·참사·고인 표현을 할인 행사나 커피의 강도를 강조하는 유머로 사용하지 않는다. 추모와 판매 유도를 구분한다.,,
-seojun_roasters-corporate_values-004,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,미션,동네 사람 누구나 부담 없이 들러 쉬어 가는 커피집을 지향한다. 커피를 잘 아는 사람이나 특정 고객만을 위한 특별한 공간보다 모두의 일상 속 쉼터가 되는 것을 목표로 한다.,,
-seojun_roasters-corporate_values-005,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,핵심 가치: 지역과 함께,지역 농가·소상공인과의 협업과 동네 행사 참여를 중요하게 여긴다. 다른 카페나 프랜차이즈를 깎아내리는 비교보다 동네의 일상을 함께하는 이야기를 전한다.,,
-seojun_roasters-corporate_values-006,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,브랜드 톤,편안하고 친근한 이웃의 말투를 사용한다. 어려운 전문 용어로 우월감을 드러내거나 커피를 모르는 고객을 가르치고 평가하려는 표현을 쓰지 않는다.,,
-seojun_roasters-corporate_values-007,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,주요 고객,출근길 직장인·학생·아이와 함께 온 가족·어르신 등 동네 주민 모두를 환영한다. 나이·동반자·소비 수준으로 방문할 수 있는 사람을 나누는 메시지를 지양한다.,,
-seojun_roasters-corporate_values-008,seojun_roasters,seojun_roasters-corporate_values,corporate_values,서준로스터스 기업가치,운영 철학: 한 잔의 정성,한 잔씩 정성 들여 내리는 과정을 소중히 여긴다. 속도와 회전율 경쟁보다 잠시 기다리며 쉬어 가는 경험을 제안한다.,,
+﻿row_id,document_type,title,section,content,source_url,published_at
+seojun_roasters-corporate_values-001,corporate_values,서준로스터스 기업가치,고객 존중,커피 지식·가격·직업·경제적 형편으로 고객의 인격과 방문 자격을 평가하지 않는다. 저렴한 상품을 선택하는 사람을 조롱하지 않는다.,,
+seojun_roasters-corporate_values-002,corporate_values,서준로스터스 기업가치,직원·구직자 존중,바리스타·아르바이트·배달 노동자·구직자를 하찮은 사람으로 표현하지 않는다. 특정 성별과 외모를 고객응대 능력의 기준으로 삼지 않는다.,,
+seojun_roasters-corporate_values-003,corporate_values,서준로스터스 기업가치,역사·지역사회 존중,역사적 기념일·참사·고인 표현을 할인 행사나 커피의 강도를 강조하는 유머로 사용하지 않는다. 추모와 판매 유도를 구분한다.,,
+seojun_roasters-corporate_values-004,corporate_values,서준로스터스 기업가치,미션,동네 사람 누구나 부담 없이 들러 쉬어 가는 커피집을 지향한다. 커피를 잘 아는 사람이나 특정 고객만을 위한 특별한 공간보다 모두의 일상 속 쉼터가 되는 것을 목표로 한다.,,
+seojun_roasters-corporate_values-005,corporate_values,서준로스터스 기업가치,핵심 가치: 지역과 함께,지역 농가·소상공인과의 협업과 동네 행사 참여를 중요하게 여긴다. 다른 카페나 프랜차이즈를 깎아내리는 비교보다 동네의 일상을 함께하는 이야기를 전한다.,,
+seojun_roasters-corporate_values-006,corporate_values,서준로스터스 기업가치,브랜드 톤,편안하고 친근한 이웃의 말투를 사용한다. 어려운 전문 용어로 우월감을 드러내거나 커피를 모르는 고객을 가르치고 평가하려는 표현을 쓰지 않는다.,,
+seojun_roasters-corporate_values-007,corporate_values,서준로스터스 기업가치,주요 고객,출근길 직장인·학생·아이와 함께 온 가족·어르신 등 동네 주민 모두를 환영한다. 나이·동반자·소비 수준으로 방문할 수 있는 사람을 나누는 메시지를 지양한다.,,
+seojun_roasters-corporate_values-008,corporate_values,서준로스터스 기업가치,운영 철학: 한 잔의 정성,한 잔씩 정성 들여 내리는 과정을 소중히 여긴다. 속도와 회전율 경쟁보다 잠시 기다리며 쉬어 가는 경험을 제안한다.,,

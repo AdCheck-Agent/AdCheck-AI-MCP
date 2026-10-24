@@ -6,7 +6,12 @@ import time
 from pathlib import Path
 
 from rag_mcp.config import ROOT, Settings
-from rag_mcp.documents import corporate_document, parse_policies, social_documents
+from rag_mcp.documents import (
+    corporate_document,
+    parse_policies,
+    sample_identity,
+    social_documents,
+)
 from rag_mcp.retrieval.embeddings import LocalEmbeddings
 from rag_mcp.retrieval.vector_store import PgVectorStore
 
@@ -59,7 +64,14 @@ async def execute(args: argparse.Namespace) -> None:
     if args.command == "ingest-social":
         documents = await social_documents(args.data_dir, embeddings)
     else:
-        rows = parse_policies(args.file.name, args.file.read_bytes(), settings)
+        default_company, default_document = sample_identity(args.file)
+        rows = parse_policies(
+            args.file.name,
+            args.file.read_bytes(),
+            settings,
+            args.company_id or default_company,
+            args.document_id or default_document,
+        )
         documents = [await corporate_document(rows, embeddings)]
     for document in documents:
         result = await store.replace(document)
@@ -75,6 +87,8 @@ def main() -> None:
     social.add_argument("--data-dir", type=Path, default=ROOT / "rag-mcp" / "data")
     corporate = commands.add_parser("ingest-corporate")
     corporate.add_argument("file", type=Path, help="A single CSV or XLSX corporate document")
+    corporate.add_argument("--company-id", help="Default: the file's folder name")
+    corporate.add_argument("--document-id", help="Default: {folder}-{file name}")
     args = parser.parse_args()
     asyncio.run(execute(args))
 

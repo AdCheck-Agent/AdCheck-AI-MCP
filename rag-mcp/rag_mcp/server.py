@@ -124,11 +124,11 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
     ) -> DocumentResult:
         try:
             data = await file.read(config.rag_max_upload_bytes + 1)
-            rows = await asyncio.to_thread(parse_policies, file.filename or "", data, config)
+            rows = await asyncio.to_thread(
+                parse_policies, file.filename or "", data, config, company_id, document_id
+            )
         finally:
             await file.close()
-        if rows[0].company_id != company_id or rows[0].document_id != document_id:
-            raise DocumentError("파일의 기업·문서 ID가 URL과 다릅니다.", "IDENTITY_MISMATCH")
         document = await corporate_document(rows, backend.embeddings)
         return await backend.replace(document, expected_revision)
 

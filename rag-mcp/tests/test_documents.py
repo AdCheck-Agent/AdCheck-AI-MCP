@@ -5,17 +5,28 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from rag_mcp.config import Settings
-from rag_mcp.documents import COLUMNS, corporate_document, parse_policies, social_documents
+from rag_mcp.documents import (
+    COLUMNS,
+    corporate_document,
+    parse_policies,
+    sample_identity,
+    social_documents,
+)
 from rag_mcp.errors import DocumentError
 from rag_mcp.server import create_app
 
 DATA = Path(__file__).resolve().parents[1] / "data"
 SAMPLE = DATA / "corporate/taegeon_beauty/corporate_values.csv"
+IDS = ("company_a", "doc_a")
+
+
+def parse(name: str, data: bytes, settings: Settings | None = None):
+    return parse_policies(name, data, settings or Settings(), *IDS)
 
 
 def serialize(rows: list[dict]) -> bytes:
     output = io.StringIO()
-    writer = csv.DictWriter(output, fieldnames=COLUMNS)
+    writer = csv.DictWriter(output, fieldnames=COLUMNS, extrasaction="ignore")
     writer.writeheader()
     writer.writerows(rows)
     return output.getvalue().encode("utf-8-sig")
@@ -26,8 +37,10 @@ def test_all_samples_have_equivalent_csv_xlsx() -> None:
     assert len(samples) == 6
     for csv_file in samples:
         xlsx = csv_file.with_suffix(".xlsx")
-        rows = parse_policies(csv_file.name, csv_file.read_bytes(), Settings())
-        assert rows == parse_policies(xlsx.name, xlsx.read_bytes(), Settings())
+        ids = sample_identity(csv_file)
+        rows = parse_policies(csv_file.name, csv_file.read_bytes(), Settings(), *ids)
+        assert rows == parse_policies(xlsx.name, xlsx.read_bytes(), Settings(), *ids)
+        assert {(r.company_id, r.document_id) for r in rows} == {ids}
         # corporate_values adds brand-direction rows (mission, tone, audience) to the 3 rules.
         expected = 8 if csv_file.stem == "corporate_values" else 3
         assert len(rows) == expected
@@ -36,42 +49,39 @@ def test_all_samples_have_equivalent_csv_xlsx() -> None:
 @pytest.mark.parametrize("extension", ["pdf", "docx", "xls", "txt"])
 def test_disallowed_upload_format(extension: str) -> None:
     with pytest.raises(DocumentError) as error:
-        parse_policies(f"file.{extension}", b"test", Settings())
+        parse(f"file.{extension}", b"test")
     assert error.value.status == 415
 
 
-def test_bad_headers_duplicate_rows_and_company_mismatch() -> None:
+def test_bad_headers_duplicate_rows_and_mixed_documents() -> None:
     with pytest.raises(DocumentError):
-        parse_policies("x.csv", b"title,content\na,b", Settings())
-    rows = [
-        r.model_dump(mode="json")
-        for r in parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings())
-    ]
+        parse("x.csv", b"title,content\na,b")
+    rows = [r.model_dump(mode="json") for r in parse(SAMPLE.name, SAMPLE.read_bytes())]
     for invalid in (
         [rows[0], rows[0]],
-        [rows[0], rows[1] | {"company_id": "other"}],
+        [rows[0], rows[1] | {"title": "other"}],
         [rows[0] | {"content": "   "}],
     ):
         with pytest.raises(DocumentError):
-            parse_policies("x.csv", serialize(invalid), Settings())
+            parse("x.csv", serialize(invalid))
 
 
 def test_invalid_xlsx_and_encoding() -> None:
     for name, content in [("x.xlsx", b"broken"), ("x.csv", b"\xff\xff")]:
         with pytest.raises(DocumentError):
-            parse_policies(name, content, Settings())
+            parse(name, content)
 
 
 def test_size_and_row_limits() -> None:
     with pytest.raises(DocumentError) as error:
-        parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings(rag_max_upload_bytes=10))
+        parse(SAMPLE.name, SAMPLE.read_bytes(), Settings(rag_max_upload_bytes=10))
     assert error.value.status == 413
     with pytest.raises(DocumentError):
-        parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings(rag_max_rows=1))
+        parse(SAMPLE.name, SAMPLE.read_bytes(), Settings(rag_max_rows=1))
 
 
 async def test_row_chunking_preserves_metadata(embeddings) -> None:
-    rows = parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings())
+    rows = parse(SAMPLE.name, SAMPLE.read_bytes())
     rows[0].content = "가" * 260
     doc = await corporate_document(rows, embeddings)
     first = [c for c in doc.chunks if c.metadata["row_id"] == rows[0].row_id]
@@ -87,14 +97,38 @@ async def test_social_manifest_excludes_corporate_and_research(embeddings) -> No
     assert all(d.metadata["source_urls"] and d.chunks for d in docs)
 
 
-def test_upload_rejects_wrong_tenant_before_embedding() -> None:
+def test_ids_come_from_the_caller_not_the_file() -> None:
+    # BE names documents with UUIDs it creates at upload time, so files cannot carry them.
+    company, document = (
+        "6f1c2a4e-0b7d-4c1e-9a55-3d2f8e9b1c00",
+        "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
+    )
+    rows = parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings(), company, document)
+    assert {(r.company_id, r.document_id) for r in rows} == {(company, document)}
+
+
+@pytest.mark.parametrize("extra", [["company_id", "document_id"], ["document_id"]])
+def test_old_id_columns_are_accepted_but_the_url_wins(extra) -> None:
+    rows = [
+        r.model_dump(mode="json") | {"company_id": "old", "document_id": "old-doc"}
+        for r in parse(SAMPLE.name, SAMPLE.read_bytes())
+    ]
+    output = io.StringIO()
+    writer = csv.DictWriter(output, fieldnames=[*extra, *COLUMNS], extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(rows)
+    parsed = parse("x.csv", output.getvalue().encode())
+    assert {(r.company_id, r.document_id) for r in parsed} == {IDS}
+
+
+def test_upload_rejects_invalid_url_ids_before_embedding() -> None:
     with TestClient(create_app()) as client:
         response = client.put(
-            "/api/v1/companies/other/documents/wrong",
+            "/api/v1/companies/bad%20id/documents/doc",
             files={"file": (SAMPLE.name, SAMPLE.read_bytes())},
         )
     assert response.status_code == 422
-    assert response.json()["error"]["code"] == "IDENTITY_MISMATCH"
+    assert response.json()["error"]["code"] == "INVALID_IDENTITY"
 
 
 def test_upload_pdf_rejected() -> None:
@@ -108,7 +142,7 @@ def test_upload_pdf_rejected() -> None:
 def test_xlsx_accepts_blank_trailing_optional_columns() -> None:
     from openpyxl import Workbook
 
-    row = parse_policies(SAMPLE.name, SAMPLE.read_bytes(), Settings())[0].model_dump(mode="json")
+    row = parse(SAMPLE.name, SAMPLE.read_bytes())[0].model_dump(mode="json")
     order = [c for c in COLUMNS if c not in ("source_url", "published_at")]
     order += ["source_url", "published_at"]
     wb = Workbook()
@@ -118,7 +152,7 @@ def test_xlsx_accepts_blank_trailing_optional_columns() -> None:
     sheet.append([row[c] for c in order[:-2]])  # Excel stores no cells for the blank tail
     buffer = io.BytesIO()
     wb.save(buffer)
-    parsed = parse_policies("x.xlsx", buffer.getvalue(), Settings())
+    parsed = parse("x.xlsx", buffer.getvalue())
     assert parsed[0].source_url is None and parsed[0].published_at is None
     assert parsed[0].content == row["content"]
 

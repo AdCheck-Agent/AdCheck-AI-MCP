@@ -62,7 +62,7 @@ RAG 검색 API는 기업 ID를 필터로 사용합니다. Agent는 RAG_RETRIEVAL
 
 ## metadata와 chunking 계약
 
-사회 문서는 YAML front matter와 heading을 해석해 적재합니다. 기업 문서는 CSV/XLSX 9개 컬럼을 사용합니다.
+사회 문서는 YAML front matter와 heading을 해석해 적재합니다. 기업 문서는 CSV/XLSX 7개 컬럼을 사용하고, 기업·문서 ID는 업로드 URL에서 받습니다.
 사회·기업 문서 모두 최신본만 두며, `version`은 파일에 적지 않고 RAG가 적재할 때 자동으로 매깁니다.
 기업 문서 유형은 기업가치·지속가능경영보고서·윤리경영 정책입니다.
 

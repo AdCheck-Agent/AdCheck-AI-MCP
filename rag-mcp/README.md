@@ -11,14 +11,14 @@ MVP에서는 현재 사회·역사 문서 묶음을 고정 기준으로 사용�
 ## 1. 기업 문서 형식
 
 파일 하나는 기업 하나의 문서 하나입니다. 첫 행은 아래 영문 헤더입니다.
+**기업·문서 ID는 파일에 적지 않습니다.** 업로드 URL의 `{company_id}`, `{document_id}`를 그대로 씁니다.
+BE가 업로드할 때 정하는 ID(UUID 등)를 사용자가 미리 알 수 없기 때문입니다.
 CSV는 UTF-8 또는 UTF-8 BOM, XLSX는 `policies` 시트 하나를 사용합니다.
 셀 병합·제목용 별도 행·숨은 보조 시트·수식 대신 평평한 표와 값을 사용하세요.
 
 | 컬럼 | 필수 값 | 형식·의미 |
 |---|---|---|
 | `row_id` | O | 문서 내 고유 정책 항목 ID, 영문·숫자·`_ - . :`, 최대 100자 |
-| `company_id` | O | BE에서 정한 기업 ID, 동일한 ID 문자 규칙, 최대 100자 |
-| `document_id` | O | BE 문서 ID, 최대 150자. 파일 내 모든 행이 같아야 함 |
 | `document_type` | O | 아래 세 가지 코드 중 하나 |
 | `title` | O | 문서 제목, 최대 200자 |
 | `section` | O | 해당 정책 항목/보고서 절 제목, 최대 200자 |
@@ -26,8 +26,10 @@ CSV는 UTF-8 또는 UTF-8 BOM, XLSX는 `policies` 시트 하나를 사용합니�
 | `source_url` | 빈 값 허용 | 실제 출처 http(s) URL. 없으면 빈 셀, 가짜 주소 입력 금지 |
 | `published_at` | 빈 값 허용 | 실제 발행일 `YYYY-MM-DD` 또는 Excel 날짜. 업로드일과 다름 |
 
-헤더는 9개 모두 필요합니다. 순서는 바꿔도 되지만 누락·중복·추가 컬럼은 거부합니다.
-각 파일의 `company_id`, `document_id`, `document_type`, `title`은 동일해야 합니다.
+헤더는 7개 모두 필요합니다. 순서는 바꿔도 되지만 누락·중복·추가 컬럼은 거부합니다.
+예외로 예전 형식의 `company_id`·`document_id` 열은 남아 있어도 받지만, 그 값은 쓰지 않고 URL의 ID를 씁니다.
+각 파일의 `document_type`, `title`은 모든 행에서 동일해야 합니다.
+URL의 ID는 영문·숫자와 `_ - . :`만 쓸 수 있고(UUID 가능) 기업 100자, 문서 150자 이하입니다.
 문서는 최신본만 유지합니다. 같은 document_id로 다시 올리면 교체되며, **version은 RAG가 자동으로 매깁니다.**
 처음 올리면 `v1`, 같은 파일을 다시 올리면 그대로, 내용이 바뀌면 `v2`, `v3`…으로 올라갑니다.
 같은 광고를 다시 검수했을 때 각 결과가 어떤 판의 기준을 썼는지 이 값으로 구분합니다.
@@ -45,6 +47,8 @@ CSV는 UTF-8 또는 UTF-8 BOM, XLSX는 `policies` 시트 하나를 사용합니�
 정책·목표·달성 실적을 구분하고 원문에 없는 인증·수치를 추가하지 마세요.
 
 두 예시 기업의 각 3종 문서는 `data/corporate/{company_id}/`에 CSV와 XLSX로 있습니다.
+예시 파일을 CLI·평가로 넣을 때는 폴더 이름을 기업 ID, `{폴더}-{파일 이름}`을 문서 ID로 씁니다
+(예: `taegeon_beauty`, `taegeon_beauty-corporate_values`).
 두 확장자는 내용이 같으므로 **둘 중 하나만 업로드**하면 됩니다.
 
 ## 2. 행 단위 chunking과 검색
@@ -94,7 +98,35 @@ python -m uvicorn rag_mcp.server:app --app-dir rag-mcp --port 8001
 
 `/health`는 모델 다운로드·DB 접속 없이 살아 있음을 확인하고, `/ready`는 DB/schema/profile을 확인합니다.
 `/ready`가 성공해도 모델 가중치가 내려받아졌다는 의미는 아닙니다.
+모델은 첫 검색 때 불러옵니다. bge-m3는 컨테이너 시작 직후 첫 검색이 10초 이상 걸려 Agent의 RAG 호출 timeout(10초)을
+넘길 수 있으므로, 검수 전에 검색을 한 번 호출해 둡니다.
+
+```bash
+curl -s localhost:8001/tools/search_social_context -H 'Content-Type: application/json' -d '{"query":"준비"}' >/dev/null
+```
 사회 문서는 manifest의 social 항목만 적재합니다. 기업 문서는 자동 적재하지 않습니다.
+
+### 외부 DB(Supabase) 사용
+
+기본은 Compose의 pgvector 컨테이너입니다. BE의 Supabase PostgreSQL에 적재하려면 연결 주소만 바꿉니다.
+설정만 준비한 상태이며 실제 Supabase 연결은 아직 확인하지 않았습니다.
+
+| 실행 방식 | 설정 |
+|---|---|
+| 로컬 Python | `.env`의 `RAG_DATABASE_URL` |
+| Docker Compose | `.env`의 `RAG_COMPOSE_DATABASE_URL` (비우면 pgvector 컨테이너) |
+
+```bash
+RAG_COMPOSE_DATABASE_URL=postgresql://postgres.<project-ref>:<비밀번호>@aws-0-<region>.pooler.supabase.com:5432/postgres?sslmode=require
+```
+
+- BE와 같은 **Session pooler(5432)**와 `sslmode=require`를 씁니다. 비밀번호의 특수문자는 URL 인코딩합니다.
+- RAG 표는 `adcheck_rag` schema에만 만듭니다. BE의 Flyway·JPA 표(`public`)와 겹치지 않습니다.
+- 적재 전에 Supabase 대시보드(Database → Extensions)에서 `vector`를 켜 두는 것을 권장합니다.
+  `init-db`도 `CREATE EXTENSION IF NOT EXISTS vector`를 실행합니다.
+- Compose의 rag-mcp는 시작할 때 `init-db`를 자동 실행합니다. 사회 문서는 처음 한 번 `ingest-social`로 넣습니다.
+- 한 DB에는 임베딩 모델 하나만 씁니다. 모델을 바꾸면 `adcheck_rag` schema를 비우고 다시 적재합니다.
+- 평가·DB 테스트는 이름이 `_eval`·`_test`로 끝나는 DB에서만 실행되므로 Supabase의 `postgres` DB를 건드리지 않습니다.
 
 ## 4. BE → RAG: 기업 문서 등록·교체
 
@@ -227,19 +259,20 @@ MCP 입력 인자는 위 검색 모델과 같고 반환은 structuredContent에 
 Agent의 `RagMCPTransportClient`가 초기화·Tool 호출·오류 확인을 담당합니다.
 기존 `RagMCPClient`는 HTTP 대체 adapter로 유지했습니다.
 Agent의 사회·기업 검색 노드에 실제 MCP client를 연결했습니다. 로컬 .env의 RAG_RETRIEVAL_ENABLED=true로 활성화하며 Compose에서는 기본으로 켭니다.
-DB·MCP 호출 실패는 rag_errors로 기록하고 needs_review로 보류합니다. company_id가 없으면 기업 검색을 생략합니다. LLM 판정은 아직 mock입니다.
+DB·MCP 호출 실패는 rag_errors로 기록하고 needs_review로 보류합니다. company_id가 없으면 기업 검색을 생략하고 최종 결과의 `missing_information`에 남깁니다.
 
 ## 7. 오류 응답
 
 ```json
-{"error":{"code":"IDENTITY_MISMATCH","message":"파일의 기업·문서 ID가 URL과 다릅니다.","retryable":false}}
+{"error":{"code":"INVALID_IDENTITY","message":"기업·문서 ID 형식을 확인하세요.","retryable":false}}
 ```
 
 | HTTP | 코드 | 의미 |
 |---|---|---|
 | 413 | FILE_TOO_LARGE | 업로드 용량 초과 |
 | 415 | UNSUPPORTED_FILE_TYPE | PDF 등 미지원 확장자 |
-| 422 | INVALID_DOCUMENT / IDENTITY_MISMATCH | 형식·행·기업/문서 ID 불일치 |
+| 422 | INVALID_DOCUMENT | 헤더·행·값 형식 오류 |
+| 422 | INVALID_IDENTITY | URL의 기업·문서 ID가 문자 규칙·길이에 맞지 않음 |
 | 409 | REVISION_CONFLICT | 문서가 다른 요청에 의해 갱신됨 |
 | 404 | DOCUMENT_NOT_FOUND | 해당 기업의 문서 없음 |
 | 503 | STORAGE_UNAVAILABLE | DB·schema·모델 profile 문제 |
@@ -284,21 +317,23 @@ PYTHONPATH=rag-mcp python -m rag_mcp.evaluation \
 
 ## 9. Backend와 합의할 범위
 
-- 문서 유형 코드 3개, 기업·문서 ID, 원본 파일 보관과 접근 권한
-- 업로드 요청 timeout과 indexed/실패 상태 표시
-- 문서 수정 때 같은 document_id로 교체할지 별도 이력을 남길지
-- 검수에 첨부한 파일의 document_ids를 BE·Agent에 연결
-- 현재 pgvector는 AI 개발용 독립 DB. BE PostgreSQL과 합칠 때 접속·권한·migration 소유권 결정
+BE는 첨부 CSV를 내용 변경 없이 업로드하고, 기업 UUID와 업로드 때 만든 문서 UUID를 URL로 보냅니다.
+업로드가 모두 `indexed`인 뒤 그 문서 ID를 `document_ids`로 Agent에 넘깁니다(BE `docs/review-start-api.md`).
 
-금기어 RDB·LLM 최종 판정·Frontend는 이 변경에서 구현하지 않습니다.
-Business/Tavily 검색의 기존 작업은 유지합니다.
+| 항목 | 상태 |
+|---|---|
+| 기업·문서 ID | BE가 발급해 URL로만 전달. 파일에는 적지 않음 (완료) |
+| 첨부 문서 ID 전달 | BE → Agent `document_ids` (완료) |
+| 원본 파일 보관 | RAG는 보관하지 않음. BE 담당 |
+| 업로드 timeout | BE `RAG_READ_TIMEOUT` 기본 120초 |
+| DB 위치 | 기본은 Compose pgvector. Supabase로 옮길지와 schema·권한 관리 주체는 합의 필요 |
+| FE 안내 | 사용자에게 7개 컬럼 CSV 형식을 안내할 방법 (FE 담당) |
 
-## 최종 확인 기록
+## 최종 확인 기록 (2026-10-23)
 
-- CSV 6개와 XLSX 6개의 내용 동등성·컬럼 검증 완료
-- 별도 pgvector test DB를 포함한 전체 테스트 87개 통과, Ruff lint/format 통과
-- 실제 로컬 임베딩으로 사회 문서 12개 적재·검색 확인
-- CSV/XLSX 업로드·재전송·기업 격리·삭제 smoke 검증 완료
-- 실제 MCP Tool 호출과 Agent 그래프 → MCP → pgvector 연결 확인
-- LLM 판정은 mock. 검색 기준선 평가: 23문항 hit@5 0.96, 기업 격리 위반 0건 (개발용 문항 기준)
-- 기업가치 방향성 행 추가 후 기업 hit@5 0.88. 이에 따라 document_ids 지정 시 첨부 문서 전체를 반환하도록 변경
+- 전체 테스트 297개 통과(전용 test DB 포함), Ruff lint 통과
+- bge-m3 검색 평가: 전체 hit@1 0.81·MRR 0.87, 사회 hit@1 1.00, 기업 hit@1 0.63, 기업 격리 위반 0건
+  ([검색 평가](../docs/2026-10-22-rag-retrieval-eval.md))
+- BE와 같은 UUID로 7개 컬럼·예전 9개 컬럼 CSV 업로드 `indexed`, 응답 ID가 URL과 같음, 첨부 문서 검색 정상
+- 같은 파일 재업로드 시 version 유지, CLI `ingest-corporate`·평가 명령 정상
+- Agent 그래프 → MCP → pgvector, 실제 모델 판정까지 연결 확인
