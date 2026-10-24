@@ -184,3 +184,58 @@ def test_suggestion_still_keeping_the_word_goes_to_a_person() -> None:
 def generate_alternative_with(model: FakeModel) -> dict:
     set_review_model(model)
     return generate_alternative(risky_state())
+
+
+def price_state() -> ReviewState:
+    """'518원' is flagged as 5·18; the evidence spells the date differently from the quote."""
+    state = initial_state(ReviewRequest(text="518원 할인 혜택", context={"channel": "sns"}))
+    state["findings"] = [
+        Finding(
+            category="historical_context",
+            severity="medium",
+            quote="518원 할인 혜택",
+            reason="5·18 민주화운동과 관련된 날짜를 연상시킬 수 있습니다.",
+            evidence=[
+                Evidence(
+                    document="기준",
+                    section="역사",
+                    snippet="5·18민주화운동은 1980년 5월 광주에서 전개된 민주화운동이다",
+                )
+            ],
+            needs_human_review=False,
+        )
+    ]
+    state["summary"] = "수정 필요"
+    return state
+
+
+def test_date_keys_ignore_how_the_date_is_written() -> None:
+    from app.llm.alternative import date_keys
+
+    for text in ("5월 18일", "5·18민주화운동", "5.18", "05-18", "518원", "5ㆍ18"):
+        assert date_keys(text) == {"5-18"}, text
+    assert date_keys("1980년 2026년 1,000원 99% 할인") == set()
+
+
+def test_prompt_names_the_date_even_when_spelled_differently() -> None:
+    model = FakeModel(alt((0, "특별 할인 혜택")))
+    set_review_model(model)
+    assert generate_alternative(price_state())["status"] == "revise"
+    assert "5월 18일" in model.calls[0][1]
+
+
+@pytest.mark.parametrize("kept", ["518원 특별 할인 혜택", "5.18 할인 혜택", "5월 18일 특가"])
+def test_suggestion_keeping_the_flagged_date_is_retried(kept: str) -> None:
+    model = FakeModel(alt((0, kept)), alt((0, "특별 할인 혜택")))
+    set_review_model(model)
+    result = generate_alternative(price_state())
+    assert result["status"] == "revise"
+    assert result["findings"][0].suggestion == "특별 할인 혜택"
+    assert "5월 18일" in model.calls[1][1]  # the retry names the date to drop
+
+
+def test_suggestion_still_keeping_the_flagged_date_goes_to_a_person() -> None:
+    set_review_model(FakeModel(alt((0, "518원 특별 할인 혜택")), alt((0, "5·18 할인 혜택"))))
+    result = generate_alternative(price_state())
+    assert result["status"] == "needs_review"
+    assert result["findings"][0].needs_human_review is True

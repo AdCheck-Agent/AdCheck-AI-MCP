@@ -1,5 +1,7 @@
 import json
 import logging
+import re
+import unicodedata
 
 from pydantic import BaseModel, Field, ValidationError
 
@@ -22,6 +24,8 @@ SYSTEM_PROMPT = """\
 4. 원래 quote나 <rule_hits>에 있는 금기어를 수정 표현에 다시 쓰지 마세요.
 4-2. 각 finding의 avoid에 있는 단어는 수정 표현에 쓰지 마세요. 근거가 문제 삼은 \
 날짜·행사명·표현이라서, 일부만 남겨도 같은 사건이 연상됩니다.
+4-3. avoid에 날짜가 있으면 표기만 바꿔 쓰지(5월 18일 → 5·18, 5.18, 518 등) 말고, \
+그 숫자를 빼거나 연상되지 않는 다른 표현으로 바꾸세요. 가격처럼 보이는 숫자도 같습니다.
 4-1. 같은 광고에 남는 다른 부분(행사명, 날짜 등)과 합쳐졌을 때도 같은 사건이 \
 연상되지 않아야 합니다. 다른 finding의 quote에 있는 표현도 쓰지 마세요.
 5. 특정 역사적 사건, 날짜, 상징을 연상시키는 표현으로 바꾸지 마세요.
@@ -61,12 +65,43 @@ def risk_terms(finding: Finding) -> set[str]:
     return _tokens(finding.quote) & evidence
 
 
+_DATE_SEPARATOR = r"[·.\-/‧・]"
+_MONTH_DAY = re.compile(rf"(?<!\d)(\d{{1,2}})\s*(?:{_DATE_SEPARATOR}|월)\s*(\d{{1,2}})(?!\d)")
+_DIGITS = re.compile(r"(?<!\d)\d{3,4}(?!\d)")
+
+
+def _month_day(month: int, day: int) -> str | None:
+    return f"{month}-{day}" if 1 <= month <= 12 and 1 <= day <= 31 else None
+
+
+def date_keys(text: str) -> set[str]:
+    """Month-day dates in any spelling (5월 18일, 5·18, 5.18, 518원) as one key such as '5-18'."""
+    # NFKC turns the Hangul middle dot (ㆍ) into a different character, so swap it first.
+    text = unicodedata.normalize("NFKC", text.replace("ㆍ", "·"))
+    pairs = list(_MONTH_DAY.findall(text))
+    pairs += [(run[:-2], run[-2:]) for run in _DIGITS.findall(text)]
+    keys = {_month_day(int(month), int(day)) for month, day in pairs}
+    return {key for key in keys if key}
+
+
+def risk_dates(finding: Finding) -> set[str]:
+    """Dates the quote shares with what flagged it, however each side spells them."""
+    flagged = " ".join([finding.reason, *(e.snippet for e in finding.evidence)])
+    return date_keys(finding.quote) & date_keys(flagged)
+
+
+def _date_label(key: str) -> str:
+    month, day = key.split("-")
+    return f"{month}월 {day}일 ({month}·{day}, {month}.{day}, {month}{day} 등 표기와 상관없이)"
+
+
 def _keeps_risk_term(finding: Finding, suggestion: str) -> set[str]:
     kept = set()
     words = _tokens(suggestion)
     for term in risk_terms(finding):
         if term in words or (len(term) >= 3 and term in suggestion):
             kept.add(term)
+    kept |= {_date_label(key) for key in risk_dates(finding) & date_keys(suggestion)}
     return kept
 
 
@@ -77,7 +112,7 @@ def build_prompt(state: ReviewState, retry_hint: str = "") -> str:
             "category": f.category,
             "quote": f.quote,
             "reason": f.reason,
-            "avoid": sorted(risk_terms(f)),
+            "avoid": sorted(risk_terms(f)) + [_date_label(k) for k in sorted(risk_dates(f))],
         }
         for i, f in enumerate(state["findings"])
     ]
@@ -146,7 +181,7 @@ def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] 
     result, kept = _validate(state, alternatives)
     if result is not None and kept:
         hint = (
-            f"직전 수정안이 다음 단어를 그대로 남겼습니다: {sorted(kept)}. "
+            f"직전 수정안이 다음 단어·날짜를 그대로 남겼습니다: {sorted(kept)}. "
             "이 단어 없이 다시 쓰세요.\n\n"
         )
         alternatives = _request(model, build_prompt(state, hint))
