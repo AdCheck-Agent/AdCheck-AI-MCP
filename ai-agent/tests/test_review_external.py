@@ -115,7 +115,8 @@ async def test_graph_async_external_search_flow() -> None:
     first = judgment(external_search_query="탱크데이 이벤트 논란")
     second = judgment(risk="yes", evidence_sufficient=True, summary="수정 필요", findings=[finding])
     alternative = json.dumps({"suggestions": [{"index": 0, "suggestion": "봄맞이 감사 할인"}]})
-    model = FakeModel(first, second, alternative)
+    clean = judgment(risk="no", findings=[])  # the fixed ad, judged again
+    model = FakeModel(first, second, alternative, clean)
     set_review_model(model)
     tools = FakeBusinessTools()
 
@@ -123,7 +124,7 @@ async def test_graph_async_external_search_flow() -> None:
     result = ReviewResponse.model_validate(await graph.ainvoke(state()))
 
     assert tools.queries == ["탱크데이 이벤트 논란"]
-    assert model.calls == 3
+    assert model.calls == 4  # judge, judge after search, suggestion, judge of the fixed ad
     assert result.status == "revise"
     assert result.findings[0].suggestion == "봄맞이 감사 할인"
     assert "news.example.com" in result.findings[0].evidence[0].section

@@ -5,9 +5,11 @@ import unicodedata
 
 from pydantic import BaseModel, Field, ValidationError
 
-from app.graph.nodes.rule_filter import normalize
+from app.graph.nodes.rule_filter import find_rule_hits, normalize
 from app.graph.state import ReviewState
 from app.llm.client import ReviewModel
+from app.llm.judge import SYSTEM_PROMPT as JUDGE_PROMPT
+from app.llm.judge import build_catalog, build_user_prompt, call_model, resolve
 from app.schemas.review import Finding
 
 logger = logging.getLogger(__name__)
@@ -169,11 +171,82 @@ def _validate(
     return result, kept_terms
 
 
+def apply_suggestions(source: str, findings: list[Finding]) -> str | None:
+    """The ad text with each quote swapped for its suggestion; None if a quote is not found."""
+    text = source
+    for finding in findings:
+        if finding.quote not in text:
+            return None
+        text = text.replace(finding.quote, finding.suggestion or "", 1)
+    return text
+
+
+def _span(text: str, part: str) -> tuple[int, int] | None:
+    start = text.find(part) if part else -1
+    return (start, start + len(part)) if start != -1 else None
+
+
+def risky_suggestions(
+    model: ReviewModel, state: ReviewState, findings: list[Finding]
+) -> list[str] | None:
+    """Suggestions that are flagged again once applied to the ad; None if the check failed.
+
+    The fixed ad is judged again with the same evidence. Only a finding that touches the text a
+    suggestion put in counts, so wording the first review left alone cannot reject a fix.
+    """
+    revised = apply_suggestions(state["source_text"], findings)
+    if revised is None:
+        logger.warning("suggestions could not be applied; recheck skipped")
+        return []
+    rechecked = {**state, "source_text": revised, "rule_hits": find_rule_hits(revised)}
+    catalog = build_catalog(rechecked)
+    judgment = call_model(model, JUDGE_PROMPT, build_user_prompt(rechecked, catalog))
+    if judgment is None:
+        return None
+    resolved = resolve(judgment, rechecked, catalog)
+    if resolved["risk"] != "yes":
+        # "uncertain" asks for a person to look; it is not proof that the fix is still risky.
+        return []
+    flagged = resolved["findings"]
+    text = normalize(revised)
+    quotes = [s for s in (_span(text, normalize(f.quote)) for f in flagged) if s]
+    return [
+        f.suggestion or ""
+        for f in findings
+        if (span := _span(text, normalize(f.suggestion or "")))
+        and any(q[0] < span[1] and span[0] < q[1] for q in quotes)
+    ]
+
+
+def _verified(
+    model: ReviewModel, state: ReviewState, findings: list[Finding]
+) -> list[Finding] | None:
+    """The findings if their suggestions hold up once applied; one rewrite is allowed."""
+    risky = risky_suggestions(model, state, findings)
+    if risky is None:
+        return None
+    if not risky:
+        return findings
+    logger.warning("suggestion flagged again after applying; rewriting once")
+    hint = (
+        f"직전 수정안 {risky}을 광고에 적용해 다시 검토했더니 그 자리가 여전히 위험 표현으로 "
+        "지적되었습니다. 다른 표현으로 다시 쓰세요.\n\n"
+    )
+    alternatives = _request(model, build_prompt(state, hint))
+    if alternatives is None:
+        return None
+    result, kept = _validate(state, alternatives)
+    if result is None or kept:
+        return None
+    return result if risky_suggestions(model, state, result) == [] else None
+
+
 def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] | None:
     """Return findings with a validated suggestion each, or None if any cannot be trusted.
 
     A suggestion that keeps a word the evidence flagged (e.g. the date or event name) gets one
-    more try with that word named; if it still keeps it, a person has to look at it.
+    more try with that word named; if it still keeps it, a person has to look at it. The fixed
+    ad is then judged again, and a suggestion that is flagged once applied gets one rewrite.
     """
     alternatives = _request(model, build_prompt(state))
     if alternatives is None:
@@ -190,4 +263,6 @@ def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] 
         result, kept = _validate(state, alternatives)
         if kept:
             return None
-    return result
+    if result is None:
+        return None
+    return _verified(model, state, result)
