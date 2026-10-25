@@ -15,7 +15,7 @@ def with_criteria(*ids: str) -> str:
 
 
 def test_criteria_ids_are_unique_and_texts_known() -> None:
-    assert len({c.id for c in CRITERIA}) == len(CRITERIA) == 10
+    assert len({c.id for c in CRITERIA}) == len(CRITERIA) == 11
     assert criteria_texts(["K1", "K1", "K2"]) == [CRITERIA[0].text, CRITERIA[1].text]
 
 

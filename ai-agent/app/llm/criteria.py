@@ -26,6 +26,8 @@ CRITERIA: tuple[Criterion, ...] = (
     Criterion("K8", "RULE-DIGNITY-001", "공포·죄책감을 이용한 구매 유도 방지"),
     Criterion("K9", "RULE-LABOR-001", "과로·위험노동 미화 방지"),
     Criterion("K10", "RULE-LABOR-001", "윤리적 생산 주장의 근거 범위 확인"),
+    # Points at the company documents attached to the review, not a fixed RAG criteria file.
+    Criterion("K11", "COMPANY_VALUES", "기업이 밝힌 가치·브랜드 원칙과의 충돌"),
 )
 
 _BY_ID = {c.id: c for c in CRITERIA}
