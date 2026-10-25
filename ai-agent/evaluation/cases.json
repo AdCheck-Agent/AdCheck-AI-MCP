@@ -878,5 +878,346 @@
   "real_model": true,
   "type": "실패 유도",
   "expected_note": "pass · 단어 일치만으로 지적하지 않음"
+ },
+ {
+  "id": "pass-09",
+  "description": "평범한 신제품 안내, 단어 '텀블러'만 근거와 겹침(v4)",
+  "text": "텀블러 신제품이 출시됩니다. 오늘부터 예약을 받습니다",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 제품 이름만 겹치면 지적하지 않음"
+ },
+ {
+  "id": "pass-10",
+  "description": "'탱크형 청소기'(제품 종류)(v4)",
+  "text": "강력한 흡입력의 탱크형 청소기를 소개합니다",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 날짜 없이 탱크라는 단어만 있음"
+ },
+ {
+  "id": "pass-11",
+  "description": "날짜 5월 18일만 있고 일상 행사(v4)",
+  "text": "5월 18일 가정의 달 감사 이벤트를 진행합니다",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 날짜 단독은 위험으로 단정하지 않음"
+ },
+ {
+  "id": "pass-12",
+  "description": "'책상' 단어만 겹침(v4)",
+  "text": "책상 위 문구 정리함 신제품 입고",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "무신사 2019년 양말 광고와 2026년 재사과 보도",
+    "section": "보도에서 확인한 사실",
+    "snippet": "MBN은 2026년 5월 20일 무신사가 2019년 7월 양말 광고에 책상을 탁 쳤더니 억하고 말라서라는 문구를 쓴 일에 재차 사과했다고 전했다. 양말 건조 성능을 설명하는 표현이 박종철 고문치사 사건 당시의 은폐 설명을 연상시킨다는 사례다.",
+    "rule_id": "CASE-HIST-003",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 제품 이름 '책상'만 겹침"
+ },
+ {
+  "id": "pass-13",
+  "description": "'양말' 단어만 겹침(v4)",
+  "text": "발이 편한 양말 3족 세트 20% 할인",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "무신사 2019년 양말 광고와 2026년 재사과 보도",
+    "section": "보도에서 확인한 사실",
+    "snippet": "MBN은 2026년 5월 20일 무신사가 2019년 7월 양말 광고에 책상을 탁 쳤더니 억하고 말라서라는 문구를 쓴 일에 재차 사과했다고 전했다. 양말 건조 성능을 설명하는 표현이 박종철 고문치사 사건 당시의 은폐 설명을 연상시킨다는 사례다.",
+    "rule_id": "CASE-HIST-003",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 제품 이름 '양말'만 겹침"
+ },
+ {
+  "id": "pass-14",
+  "description": "6월 25일 날짜만 있음(v4)",
+  "text": "6월 25일 여름 시즌 오픈, 10% 할인",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "아이소이 광고 집행 시점과 2026년 논란·사과",
+    "section": "보도에서 확인한 사실",
+    "snippet": "파이낸셜뉴스는 2026년 6월 30일 아이소이가 625%·기억을 촉구하는 말·침투 표현을 결합한 광고로 비판받았다고 보도했다. 문제 삼는 것은 수치의 진위가 아니라 숫자와 역사적 구호·표현의 결합 맥락이다.",
+    "rule_id": "CASE-HIST-002",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 날짜 단독은 위험으로 단정하지 않음"
+ },
+ {
+  "id": "pass-15",
+  "description": "화장품의 '보습' 효능 표현(v4)",
+  "text": "수분 크림 보습력 24시간, 신제품 출시",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "아이소이 광고 집행 시점과 2026년 논란·사과",
+    "section": "보도에서 확인한 사실",
+    "snippet": "파이낸셜뉴스는 2026년 6월 30일 아이소이가 625%·기억을 촉구하는 말·침투 표현을 결합한 광고로 비판받았다고 보도했다. 문제 삼는 것은 수치의 진위가 아니라 숫자와 역사적 구호·표현의 결합 맥락이다.",
+    "rule_id": "CASE-HIST-002",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 일반 효능 표현은 지적하지 않음"
+ },
+ {
+  "id": "pass-16",
+  "description": "'탱크탑'과 '양말' 근거 두 개 동시(v4)",
+  "text": "탱크탑과 레깅스 세트 입고",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   },
+   {
+    "source": "social",
+    "document": "무신사 2019년 양말 광고와 2026년 재사과 보도",
+    "section": "보도에서 확인한 사실",
+    "snippet": "MBN은 2026년 5월 20일 무신사가 2019년 7월 양말 광고에 책상을 탁 쳤더니 억하고 말라서라는 문구를 쓴 일에 재차 사과했다고 전했다. 양말 건조 성능을 설명하는 표현이 박종철 고문치사 사건 당시의 은폐 설명을 연상시킨다는 사례다.",
+    "rule_id": "CASE-HIST-003",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "pass",
+  "scripted": [
+   "{\"risk\": \"no\", \"evidence_sufficient\": true, \"summary\": \"위험 없음\", \"findings\": []}"
+  ],
+  "real_model": true,
+  "type": "실패 유도",
+  "expected_note": "pass · 옷 이름만 겹침"
+ },
+ {
+  "id": "revise-11",
+  "description": "날짜(5/18)와 '탱크' 결합, 슬래시 표기(v4)",
+  "text": "5/18 탱크 세일, 오늘만 특가",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "revise",
+  "expected_quotes": [
+   "탱크"
+  ],
+  "scripted": [
+   "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"탱크 세일\", \"reason\": \"사례의 표현과 결합\", \"evidence_ids\": [\"S1\"], \"trigger_terms\": [\"탱크\"], \"needs_human_review\": false}]}",
+   "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"특별 세일\"}]}"
+  ],
+  "real_model": true,
+  "also_ok": [
+   "needs_review"
+  ],
+  "type": "답 가능",
+  "expected_note": "revise 또는 needs_review · 날짜와 '탱크' 결합, 근거: 스타벅스 사례(CASE-HIST-001)"
+ },
+ {
+  "id": "revise-12",
+  "description": "무신사 양말 광고 문구와 같은 표현(v4)",
+  "text": "양말이 책상을 탁 치면 억 소리 나게 마릅니다",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "무신사 2019년 양말 광고와 2026년 재사과 보도",
+    "section": "보도에서 확인한 사실",
+    "snippet": "MBN은 2026년 5월 20일 무신사가 2019년 7월 양말 광고에 책상을 탁 쳤더니 억하고 말라서라는 문구를 쓴 일에 재차 사과했다고 전했다. 양말 건조 성능을 설명하는 표현이 박종철 고문치사 사건 당시의 은폐 설명을 연상시킨다는 사례다.",
+    "rule_id": "CASE-HIST-003",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "revise",
+  "expected_quotes": [
+   "책상을 탁"
+  ],
+  "scripted": [
+   "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"책상을 탁 치면 억 소리\", \"reason\": \"사례의 표현과 결합\", \"evidence_ids\": [\"S1\"], \"trigger_terms\": [\"탁\", \"억\"], \"needs_human_review\": false}]}",
+   "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"빠르게\"}]}"
+  ],
+  "real_model": true,
+  "also_ok": [
+   "needs_review"
+  ],
+  "type": "답 가능",
+  "expected_note": "revise · '책상을 탁 … 억' 표현, 근거: 무신사 사례(CASE-HIST-003)"
+ },
+ {
+  "id": "revise-13",
+  "description": "6월 25일과 625% 결합(v4)",
+  "text": "6월 25일을 기억하세요, 625% 보습",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "아이소이 광고 집행 시점과 2026년 논란·사과",
+    "section": "보도에서 확인한 사실",
+    "snippet": "파이낸셜뉴스는 2026년 6월 30일 아이소이가 625%·기억을 촉구하는 말·침투 표현을 결합한 광고로 비판받았다고 보도했다. 문제 삼는 것은 수치의 진위가 아니라 숫자와 역사적 구호·표현의 결합 맥락이다.",
+    "rule_id": "CASE-HIST-002",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "revise",
+  "expected_quotes": [
+   "625%"
+  ],
+  "scripted": [
+   "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"625%\", \"reason\": \"사례의 표현과 결합\", \"evidence_ids\": [\"S1\"], \"trigger_terms\": [\"625%\"], \"needs_human_review\": false}]}",
+   "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"집중 보습\"}]}"
+  ],
+  "real_model": true,
+  "also_ok": [
+   "needs_review"
+  ],
+  "type": "답 가능",
+  "expected_note": "revise 또는 needs_review · 625%와 기억 표현의 결합, 근거: 아이소이 사례(CASE-HIST-002)"
+ },
+ {
+  "id": "revise-14",
+  "description": "숫자로 쓴 날짜 518원(v4)",
+  "text": "518원 특가 이벤트",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "revise",
+  "expected_quotes": [
+   "518"
+  ],
+  "scripted": [
+   "{\"risk\": \"yes\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"high\", \"quote\": \"518원\", \"reason\": \"사례의 표현과 결합\", \"evidence_ids\": [\"S1\"], \"trigger_terms\": [\"518\"], \"needs_human_review\": false}]}",
+   "{\"suggestions\": [{\"index\": 0, \"suggestion\": \"특별 가격\"}]}"
+  ],
+  "real_model": true,
+  "also_ok": [
+   "needs_review"
+  ],
+  "type": "답 가능",
+  "expected_note": "revise 또는 needs_review · 숫자로 쓴 5·18, 근거: 스타벅스 사례(CASE-HIST-001)"
+ },
+ {
+  "id": "review-19",
+  "description": "날짜 없이 행사명 '탱크데이'만 있음(v4)",
+  "text": "탱크데이 특가! 오늘만 할인",
+  "company_id": null,
+  "evidence": [
+   {
+    "source": "social",
+    "document": "스타벅스 2026년 5월 행사명·문구 논란",
+    "section": "보도에서 확인한 사실",
+    "snippet": "전남일보는 2026년 5월 18일 스타벅스의 텀블러 행사에 탱크데이 및 책상에 탁!이라는 표현이 사용돼 비판이 제기됐다고 보도했다. 5월 18일이라는 행사 날짜와 표현의 결합, 박종철 사건을 연상시킨다는 지적이 핵심이다.",
+    "rule_id": "CASE-HIST-001",
+    "version": "v1"
+   }
+  ],
+  "expected_status": "needs_review",
+  "expected_quotes": [
+   "탱크데이"
+  ],
+  "scripted": [
+   "{\"risk\": \"uncertain\", \"evidence_sufficient\": true, \"summary\": \"수정 필요\", \"findings\": [{\"category\": \"historical_context\", \"severity\": \"medium\", \"quote\": \"탱크데이\", \"reason\": \"사례의 표현과 결합\", \"evidence_ids\": [\"S1\"], \"trigger_terms\": [\"탱크데이\"], \"needs_human_review\": true}]}"
+  ],
+  "real_model": true,
+  "also_ok": [
+   "revise"
+  ],
+  "type": "답 불가",
+  "expected_note": "needs_review 또는 revise · 날짜 없이 행사명만 있음, pass 금지"
  }
 ]

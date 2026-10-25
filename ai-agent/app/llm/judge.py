@@ -12,6 +12,7 @@ from app.llm.client import ReviewModel
 from app.llm.criteria import criteria_for_prompt, criteria_texts
 from app.llm.dates import date_keys, number_date_keys
 from app.llm.evidence import to_evidence
+from app.llm.triggers import case_applies
 from app.schemas.review import Category, Evidence, Finding, Severity
 
 logger = logging.getLogger(__name__)
@@ -233,6 +234,9 @@ def quote_retry_hint(quotes: list[str]) -> str:
     )
 
 
+GATED_SUMMARY = "참고한 사례의 적용 조건(날짜와 표현의 결합)이 문구에 없어 위험 없음으로 봅니다."
+
+
 def needs_review(summary: str) -> dict:
     return {"evidence_sufficient": False, "risk": "uncertain", "findings": [], "summary": summary}
 
@@ -246,11 +250,19 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
     source = normalize(state["source_text"])
     findings: list[Finding] = []
     criteria_ids: list[str] = []
+    gated = 0
     for judged in judgment.findings:
         if normalize(judged.quote) not in source:
             continue
-        criteria_ids += judged.criteria_ids
         evidence = [by_id[i] for i in dict.fromkeys(judged.evidence_ids) if i in by_id]
+        # A reported case only counts when the ad has its combination (date + wording); a shared
+        # word such as 탱크톱 or a bare date is not enough.
+        applicable = [e for e in evidence if case_applies(e.rule_id, state["source_text"])]
+        if evidence and not applicable:
+            gated += 1
+            continue
+        evidence = applicable
+        criteria_ids += judged.criteria_ids
         findings.append(
             Finding(
                 detection_type=_detection_type(judged.quote, state),
@@ -264,7 +276,10 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
             )
         )
 
-    sufficient, risk = judgment.evidence_sufficient, judgment.risk
+    sufficient, risk, summary = judgment.evidence_sufficient, judgment.risk, judgment.summary
+    if gated and gated == len(judgment.findings) and not findings and risk != "no":
+        # Every finding rested on a case whose conditions the ad does not meet.
+        sufficient, risk, summary = True, "no", GATED_SUMMARY
     if risk == "yes" and not any(f.evidence for f in findings):
         sufficient, risk = False, "uncertain"
     if risk == "no":
@@ -275,7 +290,7 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
                 "evidence_sufficient": sufficient,
                 "risk": "uncertain",
                 "findings": [],
-                "summary": _held_hit_summary(state, judgment.summary),
+                "summary": _held_hit_summary(state, summary),
             }
         hidden = _number_dates_in_evidence(state, by_id.values())
         if hidden:
@@ -298,7 +313,7 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
         "risk": risk,
         "findings": findings,
         "related_criteria": criteria_texts(criteria_ids) if findings else [],
-        "summary": judgment.summary,
+        "summary": summary,
     }
 
 
