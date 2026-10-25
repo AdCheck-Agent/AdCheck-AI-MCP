@@ -36,6 +36,10 @@ SYSTEM_PROMPT = """\
 수정 표현은 이 기준을 지켜야 합니다. 단어만 바꾸고 기준이 금지한 뜻을 그대로 두지 마세요 \
 (예: 특정 고객을 배제하는 문장을 '특정 음료를 즐기는 분들은 자제해 주세요'로 바꾸기, \
 아이 성적 하락을 '학습이 향상됩니다'처럼 효과 약속으로 바꾸기). 필요하면 문장의 뜻 자체를 바꾸세요.
+5-2. quote가 동작·소리로 사건을 연상시키면(무언가를 치거나 두드리는 동작, 그에 따른 소리 등) \
+그 동작을 다른 동작(손을 올리다, 살짝 누르다 등)으로 바꾸지 말고, 동작 묘사를 빼고 \
+제품과 혜택을 직접 말하세요 (예: '책상에 탁 치면 억 소리 나는 할인' → '튼튼한 책상을 \
+만나는 특별 할인'). 광고하는 제품 이름은 남겨도 됩니다.
 6. 자연스러운 한국어 광고 문구로 쓰고, 설명이나 사족은 붙이지 마세요.
 6-1. suggestion은 quote 부분만 대체합니다. quote 밖에 있는 광고의 나머지 문장은 \
 그대로 남으므로 suggestion에 다시 쓰지 마세요.
@@ -67,15 +71,18 @@ def _tokens(text: str) -> set[str]:
 
 
 def risk_terms(finding: Finding) -> set[str]:
-    """Words that evoke the case: those the judge named, plus words shared with the evidence.
+    """Words that evoke the case: those the judge named, else words shared with the evidence.
 
-    Word overlap alone misses one-syllable triggers (탁, 억) and words with a particle attached,
-    so the judge's own trigger_terms come first.
+    Word overlap alone misses one-syllable triggers (탁, 억), so the judge's own trigger_terms
+    win. Overlap is only the fallback: it also catches the product itself (책상에 in both the
+    ad and the case), and a rewrite would then have to drop what is being sold.
     """
+    if finding.trigger_terms:
+        return set(finding.trigger_terms)
     evidence = (
         set().union(*(_tokens(e.snippet) for e in finding.evidence)) if finding.evidence else set()
     )
-    return set(finding.trigger_terms) | (_tokens(finding.quote) & evidence)
+    return _tokens(finding.quote) & evidence
 
 
 def risk_dates(finding: Finding) -> set[str]:
