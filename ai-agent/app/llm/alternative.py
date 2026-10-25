@@ -1,13 +1,13 @@
 import json
 import logging
 import re
-import unicodedata
 
 from pydantic import BaseModel, Field, ValidationError
 
 from app.graph.nodes.rule_filter import find_rule_hits, normalize
 from app.graph.state import ReviewState
 from app.llm.client import ReviewModel
+from app.llm.dates import date_keys
 from app.llm.judge import SYSTEM_PROMPT as JUDGE_PROMPT
 from app.llm.judge import build_catalog, build_user_prompt, call_model, resolve
 from app.schemas.review import Finding
@@ -15,6 +15,7 @@ from app.schemas.review import Finding
 logger = logging.getLogger(__name__)
 
 MAX_ATTEMPTS = 2
+RULE_CHARS = 400
 
 SYSTEM_PROMPT = """\
 당신은 SNS 광고 문구에서 논란 가능성이 있는 표현을 안전하게 고쳐 쓰는 카피 보조자입니다.
@@ -31,7 +32,13 @@ SYSTEM_PROMPT = """\
 4-1. 같은 광고에 남는 다른 부분(행사명, 날짜 등)과 합쳐졌을 때도 같은 사건이 \
 연상되지 않아야 합니다. 다른 finding의 quote에 있는 표현도 쓰지 마세요.
 5. 특정 역사적 사건, 날짜, 상징을 연상시키는 표현으로 바꾸지 마세요.
+5-1. 각 finding의 rules는 그 표현이 어긴 기준(회사 원칙 또는 사회적 기준)입니다. \
+수정 표현은 이 기준을 지켜야 합니다. 단어만 바꾸고 기준이 금지한 뜻을 그대로 두지 마세요 \
+(예: 특정 고객을 배제하는 문장을 '특정 음료를 즐기는 분들은 자제해 주세요'로 바꾸기, \
+아이 성적 하락을 '학습이 향상됩니다'처럼 효과 약속으로 바꾸기). 필요하면 문장의 뜻 자체를 바꾸세요.
 6. 자연스러운 한국어 광고 문구로 쓰고, 설명이나 사족은 붙이지 마세요.
+6-1. suggestion은 quote 부분만 대체합니다. quote 밖에 있는 광고의 나머지 문장은 \
+그대로 남으므로 suggestion에 다시 쓰지 마세요.
 7. 응답은 JSON 객체 하나만 출력하세요.
 """
 
@@ -60,30 +67,15 @@ def _tokens(text: str) -> set[str]:
 
 
 def risk_terms(finding: Finding) -> set[str]:
-    """Words the quote shares with the evidence that flagged it: the part that evokes the case."""
+    """Words that evoke the case: those the judge named, plus words shared with the evidence.
+
+    Word overlap alone misses one-syllable triggers (탁, 억) and words with a particle attached,
+    so the judge's own trigger_terms come first.
+    """
     evidence = (
         set().union(*(_tokens(e.snippet) for e in finding.evidence)) if finding.evidence else set()
     )
-    return _tokens(finding.quote) & evidence
-
-
-_DATE_SEPARATOR = r"[·.\-/‧・]"
-_MONTH_DAY = re.compile(rf"(?<!\d)(\d{{1,2}})\s*(?:{_DATE_SEPARATOR}|월)\s*(\d{{1,2}})(?!\d)")
-_DIGITS = re.compile(r"(?<!\d)\d{3,4}(?!\d)")
-
-
-def _month_day(month: int, day: int) -> str | None:
-    return f"{month}-{day}" if 1 <= month <= 12 and 1 <= day <= 31 else None
-
-
-def date_keys(text: str) -> set[str]:
-    """Month-day dates in any spelling (5월 18일, 5·18, 5.18, 518원) as one key such as '5-18'."""
-    # NFKC turns the Hangul middle dot (ㆍ) into a different character, so swap it first.
-    text = unicodedata.normalize("NFKC", text.replace("ㆍ", "·"))
-    pairs = list(_MONTH_DAY.findall(text))
-    pairs += [(run[:-2], run[-2:]) for run in _DIGITS.findall(text)]
-    keys = {_month_day(int(month), int(day)) for month, day in pairs}
-    return {key for key in keys if key}
+    return set(finding.trigger_terms) | (_tokens(finding.quote) & evidence)
 
 
 def risk_dates(finding: Finding) -> set[str]:
@@ -100,11 +92,22 @@ def _date_label(key: str) -> str:
 def _keeps_risk_term(finding: Finding, suggestion: str) -> set[str]:
     kept = set()
     words = _tokens(suggestion)
+    # One-syllable triggers count only as a word of their own (탁 치면), not inside 탁월한.
+    singles = {w for w in (t.strip(_EDGE) for t in suggestion.split()) if len(w) == 1}
     for term in risk_terms(finding):
-        if term in words or (len(term) >= 3 and term in suggestion):
+        named = term in finding.trigger_terms and len(term) >= 2 and term in suggestion
+        if term in words or term in singles or named or (len(term) >= 3 and term in suggestion):
             kept.add(term)
     kept |= {_date_label(key) for key in risk_dates(finding) & date_keys(suggestion)}
     return kept
+
+
+def _repeats_rest(source: str, quote: str, suggestion: str) -> set[str]:
+    """Parts of the ad outside the quote that the suggestion repeats; they would appear twice."""
+    rest = source.replace(quote, "\n", 1)
+    parts = {p.strip() for p in re.split(r"[\n,.!?]", rest) if len(normalize(p)) >= 4}
+    text = normalize(suggestion)
+    return {p for p in parts if normalize(p) in text}
 
 
 def build_prompt(state: ReviewState, retry_hint: str = "") -> str:
@@ -115,6 +118,8 @@ def build_prompt(state: ReviewState, retry_hint: str = "") -> str:
             "quote": f.quote,
             "reason": f.reason,
             "avoid": sorted(risk_terms(f)) + [_date_label(k) for k in sorted(risk_dates(f))],
+            # Without the rule it broke, the writer only swaps words and keeps the meaning.
+            "rules": [e.snippet[:RULE_CHARS] for e in f.evidence],
         }
         for i, f in enumerate(state["findings"])
     ]
@@ -167,6 +172,7 @@ def _validate(
         if any(term and term in normalized for term in reused):
             return None, set()
         kept_terms |= _keeps_risk_term(finding, suggestion)
+        kept_terms |= _repeats_rest(state["source_text"], finding.quote, suggestion)
         result.append(finding.model_copy(update={"suggestion": suggestion}))
     return result, kept_terms
 
@@ -189,7 +195,15 @@ def _span(text: str, part: str) -> tuple[int, int] | None:
 def risky_suggestions(
     model: ReviewModel, state: ReviewState, findings: list[Finding]
 ) -> list[str] | None:
-    """Suggestions that are flagged again once applied to the ad; None if the check failed.
+    """Suggestions that are flagged again once applied to the ad; None if the check failed."""
+    checked = recheck(model, state, findings)
+    return None if checked is None else checked[0]
+
+
+def recheck(
+    model: ReviewModel, state: ReviewState, findings: list[Finding]
+) -> tuple[list[str], set[str]] | None:
+    """Re-flagged suggestions and the trigger words the re-check named; None if it failed.
 
     The fixed ad is judged again with the same evidence. Only a finding that touches the text a
     suggestion put in counts, so wording the first review left alone cannot reject a fix.
@@ -197,7 +211,7 @@ def risky_suggestions(
     revised = apply_suggestions(state["source_text"], findings)
     if revised is None:
         logger.warning("suggestions could not be applied; recheck skipped")
-        return []
+        return [], set()
     rechecked = {**state, "source_text": revised, "rule_hits": find_rule_hits(revised)}
     catalog = build_catalog(rechecked)
     judgment = call_model(model, JUDGE_PROMPT, build_user_prompt(rechecked, catalog))
@@ -206,31 +220,45 @@ def risky_suggestions(
     resolved = resolve(judgment, rechecked, catalog)
     if resolved["risk"] != "yes":
         # "uncertain" asks for a person to look; it is not proof that the fix is still risky.
-        return []
-    flagged = resolved["findings"]
+        return [], set()
+    # A re-flag counts only when it names a concrete trigger inside the new wording; a vague
+    # "could still be risky" about ordinary words would otherwise reject every rewrite.
+    flagged = [
+        f
+        for f in resolved["findings"]
+        if any(
+            normalize(t) in normalize(s.suggestion or "") for t in f.trigger_terms for s in findings
+        )
+    ]
     text = normalize(revised)
     quotes = [s for s in (_span(text, normalize(f.quote)) for f in flagged) if s]
-    return [
+    risky = [
         f.suggestion or ""
         for f in findings
         if (span := _span(text, normalize(f.suggestion or "")))
         and any(q[0] < span[1] and span[0] < q[1] for q in quotes)
     ]
+    terms = {t for f in flagged for t in f.trigger_terms} if risky else set()
+    return risky, terms
 
 
 def _verified(
     model: ReviewModel, state: ReviewState, findings: list[Finding]
 ) -> list[Finding] | None:
     """The findings if their suggestions hold up once applied; one rewrite is allowed."""
-    risky = risky_suggestions(model, state, findings)
-    if risky is None:
+    checked = recheck(model, state, findings)
+    if checked is None:
         return None
+    risky, terms = checked
     if not risky:
         return findings
     logger.warning("suggestion flagged again after applying; rewriting once")
+    # Naming the words the re-check objected to keeps the rewrite from repeating them.
+    named = f" 문제로 지적된 단어: {sorted(terms)}. 이 단어와 같은 뜻을 빼고" if terms else ""
     hint = (
         f"직전 수정안 {risky}을 광고에 적용해 다시 검토했더니 그 자리가 여전히 위험 표현으로 "
-        "지적되었습니다. 다른 표현으로 다시 쓰세요.\n\n"
+        f"지적되었습니다.{named} 단어만 바꿔 같은 장면·비유(예: 무언가를 두드리는 동작)를 "
+        "남기지 말고, 그 장면을 빼고 다른 표현으로 다시 쓰세요.\n\n"
     )
     alternatives = _request(model, build_prompt(state, hint))
     if alternatives is None:
