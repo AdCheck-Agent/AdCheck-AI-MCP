@@ -214,6 +214,23 @@ def call_model(model: ReviewModel, system: str, user: str) -> Judgment | None:
     return None
 
 
+def quotes_not_in_ad(judgment: Judgment, state: ReviewState) -> list[str]:
+    """Quotes of a risky judgment when none of them is in the ad, e.g. 탁! lifted from a case."""
+    if judgment.risk != "yes" or not judgment.findings:
+        return []
+    source = normalize(state["source_text"])
+    quotes = [f.quote for f in judgment.findings]
+    return [] if any(normalize(q) in source for q in quotes) else quotes
+
+
+def quote_retry_hint(quotes: list[str]) -> str:
+    return (
+        f"\n\n직전 응답의 quote {quotes}는 광고 원문에 없습니다. 근거 문서의 표현을 quote로 "
+        "쓰지 마세요. quote는 <ad_text>에서 글자 그대로 옮기고, 광고에 근거와 직접 연결되는 "
+        "표현이 없으면 findings를 비우고 risk를 다시 판단하세요."
+    )
+
+
 def needs_review(summary: str) -> dict:
     return {"evidence_sufficient": False, "risk": "uncertain", "findings": [], "summary": summary}
 

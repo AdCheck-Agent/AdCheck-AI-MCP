@@ -128,11 +128,22 @@ def test_no_evidence_forces_needs_review_even_if_model_says_safe() -> None:
 def test_quote_not_in_source_is_dropped_and_risk_downgraded() -> None:
     bad = {"quote": "원문에 없는 표현", "evidence_ids": ["S1"]}
     finding = json.loads(judgment())["findings"][0] | bad
-    set_review_model(FakeModel(judgment(findings=[finding])))
+    model = FakeModel(judgment(findings=[finding]), judgment(findings=[finding]))
+    set_review_model(model)
     result = review_llm(make_state())
     assert result["findings"] == []
     assert result["risk"] == "uncertain"
     assert not result["evidence_sufficient"]
+    assert len(model.calls) == 2  # asked once more to quote the ad
+    assert "광고 원문에 없습니다" in model.calls[1][1]
+
+
+def test_requote_that_finds_the_ad_wording_is_used() -> None:
+    bad = json.loads(judgment())["findings"][0] | {"quote": "원문에 없는 표현"}
+    set_review_model(FakeModel(judgment(findings=[bad]), judgment()))
+    result = review_llm(make_state())
+    assert result["risk"] == "yes"
+    assert [f.quote for f in result["findings"]][0] == "탱크데이"
 
 
 def test_unknown_evidence_id_cannot_support_a_risk() -> None:
