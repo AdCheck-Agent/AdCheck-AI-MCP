@@ -48,12 +48,17 @@ class ReviewAccepted(BaseModel):
     trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")
 
 
+EvidenceSource = Literal["social", "corporate", "external"]
+
+
 class Evidence(BaseModel):
     document: str = Field(min_length=1)
     section: str = Field(min_length=1)
     snippet: str = Field(min_length=1)
     rule_id: str | None = None
     version: str | None = None
+    # Where it was retrieved: social criteria, the company's own documents, or a web search.
+    source: EvidenceSource | None = None
 
 
 DetectionType = Literal["BANNED_WORD", "SEMANTIC"]

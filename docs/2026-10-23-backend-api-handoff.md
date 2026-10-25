@@ -183,7 +183,7 @@ CP 전송이 끝내 실패하면 로그로 남긴다. 별도 실패 CP와 BE 대
       "quote": "문제 구절",
       "reason": "판정 이유",
       "evidence": [
-        { "document": "태건뷰티 기업가치", "section": "약속", "snippet": "근거 원문", "rule_id": "taegeon_beauty-corporate_values-008", "version": "v1" }
+        { "document": "태건뷰티 기업가치", "section": "약속", "snippet": "근거 원문", "rule_id": "taegeon_beauty-corporate_values-008", "version": "v1", "source": "corporate" }
       ],
       "suggestion": "수정 제안",
       "needs_human_review": true

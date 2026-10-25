@@ -141,13 +141,15 @@ def trigger_terms(terms: list[str], quote: str) -> list[str]:
 
 def build_catalog(state: ReviewState) -> list[CatalogItem]:
     sources = (
-        ("S", state["social_context_evidence"]),
-        ("C", state["corporate_value_evidence"]),
-        ("E", state["external_evidence"]),
+        ("S", "social", state["social_context_evidence"]),
+        ("C", "corporate", state["corporate_value_evidence"]),
+        ("E", "external", state["external_evidence"]),
     )
+    # The source travels with each piece of evidence, so a reader can tell the company's own
+    # rule from a social criterion once they are mixed in one finding.
     return [
-        CatalogItem(f"{prefix}{index}", to_evidence(evidence))
-        for prefix, items in sources
+        CatalogItem(f"{prefix}{index}", to_evidence(evidence).model_copy(update={"source": kind}))
+        for prefix, kind, items in sources
         for index, evidence in enumerate(items, start=1)
     ]
 
