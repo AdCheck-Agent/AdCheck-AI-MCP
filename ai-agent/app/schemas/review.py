@@ -69,6 +69,8 @@ class Finding(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     suggestion: str | None = None
     needs_human_review: bool
+    # Words in the quote the judge named as the trigger; internal to the suggestion checks.
+    trigger_terms: list[str] = Field(default_factory=list, exclude=True)
 
 
 class ReviewResponse(BaseModel):

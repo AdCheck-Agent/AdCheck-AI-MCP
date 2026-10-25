@@ -37,6 +37,7 @@ def flagged(quote: str, risk: str = "yes") -> str:
         "quote": quote,
         "reason": "수정안에도 같은 사건이 연상됩니다.",
         "evidence_ids": ["S1"],
+        "trigger_terms": [quote.split()[0]],  # the re-check must name the word it objects to
         "needs_human_review": False,
     }
     return json.dumps(

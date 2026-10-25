@@ -10,6 +10,7 @@ from app.graph.nodes.rule_filter import normalize
 from app.graph.state import ReviewState
 from app.llm.client import ReviewModel
 from app.llm.criteria import criteria_for_prompt, criteria_texts
+from app.llm.dates import date_keys, number_date_keys
 from app.llm.evidence import to_evidence
 from app.schemas.review import Category, Evidence, Finding, Severity
 
@@ -50,6 +51,10 @@ evidence_sufficient는 판단에 쓸 근거가 있으면 true이고, \
 표현마다 finding을 따로 쓰세요. 근거에 적힌 문구와 글자가 똑같지 않아도, 같은 말투·비유·\
 관용구로 같은 사건을 연상시키면 연결된 것으로 보세요. 날짜·행사명 한 곳만 지적하고 \
 같은 광고 안의 다른 연결 표현을 빠뜨리지 마세요.
+7-6. finding마다 quote 안에서 근거의 사건·원칙을 떠올리게 하는 핵심 단어를 trigger_terms에 \
+광고 원문 그대로 넣으세요. 한 글자 단어(예: 의성어 "탁")도 빠뜨리지 마세요. \
+할인·특가·혜택·이벤트·기념·오늘만처럼 광고의 형식을 나타내는 일반 단어는 넣지 마세요. \
+수정안은 이 단어를 쓰지 않도록 만들어집니다.
 8. 근거가 부족한데 최근 공개 사실을 웹에서 확인하면 판단할 수 있을 때만 \
 external_search_query에 검색어 한 줄을 쓰세요. 광고 문구 전체나 개인정보를 넣지 말고, \
 필요 없으면 null로 두세요.
@@ -77,6 +82,7 @@ discrimination_and_hate | labor_and_human_rights | external_partner_risk | corpo
       "reason": "왜 확인이 필요한지",
       "evidence_ids": ["S1"],
       "criteria_ids": ["K1"],
+      "trigger_terms": ["quote 안의 문제 단어"],
       "needs_human_review": false
     }
   ]
@@ -93,6 +99,7 @@ class JudgedFinding(BaseModel):
     reason: str = Field(min_length=1)
     evidence_ids: list[str] = Field(default_factory=list)
     criteria_ids: list[str] = Field(default_factory=list)
+    trigger_terms: list[str] = Field(default_factory=list)
     needs_human_review: bool = False
 
 
@@ -108,6 +115,28 @@ class Judgment(BaseModel):
 class CatalogItem:
     id: str
     evidence: Evidence
+
+
+# Ordinary ad wording. A trigger made only of these would make every rewrite "still risky".
+GENERIC_TERMS = frozenset(
+    "할인 특가 혜택 이벤트 기념 특별 특별한 오늘만 오늘 한정 "
+    "신제품 출시 세일 프로모션 증정 무료".split()
+)
+
+
+# "탁!" and "탁" are the same trigger; punctuation would hide it from the word checks.
+TERM_EDGE = " \t\n.,!?;:·'\"()[]{}~…"
+
+
+def trigger_terms(terms: list[str], quote: str) -> list[str]:
+    """Terms that are really in the quote and not just ordinary ad wording."""
+    text = normalize(quote)
+    kept = []
+    for term in (t.strip(TERM_EDGE) for t in terms):
+        words = term.split()
+        if term and normalize(term) in text and not all(w in GENERIC_TERMS for w in words):
+            kept.append(term)
+    return list(dict.fromkeys(kept))
 
 
 def build_catalog(state: ReviewState) -> list[CatalogItem]:
@@ -212,6 +241,7 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
                 reason=judged.reason,
                 evidence=evidence,
                 needs_human_review=judged.needs_human_review or not evidence,
+                trigger_terms=trigger_terms(judged.trigger_terms, judged.quote),
             )
         )
 
@@ -227,6 +257,16 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
                 "risk": "uncertain",
                 "findings": [],
                 "summary": _held_hit_summary(state, judgment.summary),
+            }
+        hidden = _number_dates_in_evidence(state, by_id.values())
+        if hidden:
+            # "518원" reads as a price, so the model can call it safe while the evidence is about
+            # 5월 18일. A date disguised as a number never passes silently.
+            return {
+                "evidence_sufficient": sufficient,
+                "risk": "uncertain",
+                "findings": [],
+                "summary": _hidden_date_summary(hidden),
             }
     if risk == "yes":
         # The model may skip a banned expression it was hinted about; applying its suggestions
@@ -281,6 +321,17 @@ def _no_evidence_summary(state: ReviewState) -> str:
         terms = ", ".join(h.expression for h in state["rule_hits"])
         return f"금기어({terms})가 탐지되었으나 뒷받침할 근거가 없어 사람 검토가 필요합니다."
     return "검색된 근거가 없어 판단할 수 없습니다. 사람 검토가 필요합니다."
+
+
+def _number_dates_in_evidence(state: ReviewState, evidence) -> list[str]:
+    """Dates the ad writes as a bare number that the evidence also mentions, e.g. 518 / 5월 18일."""
+    in_evidence = set().union(*(date_keys(e.snippet) for e in evidence)) if evidence else set()
+    return sorted(number_date_keys(state["source_text"]) & in_evidence)
+
+
+def _hidden_date_summary(keys: list[str]) -> str:
+    dates = ", ".join(f"{k.split('-')[0]}월 {k.split('-')[1]}일" for k in keys)
+    return f"문구의 숫자가 근거에 나온 날짜({dates})와 같아 연상 여부를 사람이 확인해야 합니다."
 
 
 def _held_hit_summary(state: ReviewState, model_summary: str) -> str:
