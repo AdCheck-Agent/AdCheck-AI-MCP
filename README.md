@@ -138,7 +138,7 @@ curl -s localhost:8001/tools/search_social_context -H 'Content-Type: application
       "quote": "5·18 탱크데이!",
       "reason": "5·18 민주화운동과 관련된 표현으로 상업적 활용이 논란이 될 수 있습니다.",
       "evidence": [{"document": "스타벅스 2026년 5월 행사명·문구 논란", "section": "보도에서 확인한 사실",
-                    "snippet": "...", "rule_id": "CASE-HIST-001", "version": "v1"}],
+                    "snippet": "...", "rule_id": "CASE-HIST-001", "version": "v1", "source": "social"}],
       "suggestion": "특별 할인 이벤트!",
       "needs_human_review": false
     }

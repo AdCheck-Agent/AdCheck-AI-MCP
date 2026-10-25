@@ -37,7 +37,23 @@ def test_company_finding_cites_the_company_rule() -> None:
     raw = with_finding(category="corporate_value", quote="안 사면 평생 후회", evidence_ids=["C1"])
     result, _ = run(raw, state)
     assert result["risk"] == "yes"
-    assert result["findings"][0].evidence == [COMPANY_RULE]
+    assert result["findings"][0].evidence == [
+        COMPANY_RULE.model_copy(update={"source": "corporate"})
+    ]
+
+
+def test_evidence_carries_where_it_was_retrieved() -> None:
+    state = make_state()
+    state["corporate_value_evidence"] = [COMPANY_RULE]
+    raw = with_finding(evidence_ids=["S1", "C1"])
+    result, _ = run(raw, state)
+    sources = [e.source for e in result["findings"][0].evidence]
+    assert sources == ["social", "corporate"]
+    response = ReviewResponse(
+        status="revise", summary="s", findings=result["findings"], trace_id="trace_" + "0" * 32
+    )
+    dumped = response.model_dump(mode="json")["findings"][0]["evidence"]
+    assert [e["source"] for e in dumped] == ["social", "corporate"]
 
 
 def test_trigger_terms_outside_the_quote_are_dropped() -> None:

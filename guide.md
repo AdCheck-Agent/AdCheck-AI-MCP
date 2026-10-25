@@ -154,6 +154,7 @@ save_checkpoint(original_text_id, checkpoint_level, result=None)  # Business MCP
 | `document`, `section`, `snippet` | 문서명, 항목, 실제 검색된 내용 |
 | `rule_id` | 기준 ID (기업 문서는 `row_id`) |
 | `version` | 문서 판. 적재 시 RAG가 자동 부여, 재검수 시 기준이 바뀌었는지 구분 |
+| `source` | 근거 출처. `social`(사회·역사 기준), `corporate`(기업 문서), `external`(외부 검색) |
 
 RAG 응답에는 이 밖에 `document_id`, `chunk_id`, `company_id`, `score`, `source_urls` 등이 있습니다.
 `score`는 cosine 유사도일 뿐 관련성 판정 기준이 아니므로 판정에 쓰지 않습니다.
