@@ -87,6 +87,18 @@ def test_named_multi_syllable_trigger_is_caught_inside_a_word() -> None:
     assert kept_terms(found, "탱크데이특가 진행") == {"탱크데이"}
 
 
+def test_product_word_shared_with_the_case_is_not_avoided() -> None:
+    # 책상에 is in both the ad and the case, but the judge named only 탁 and 억.
+    found = finding("책상에 탁 치면 억 소리 나는 할인", ["탁", "억"])
+    assert risk_terms(found) == {"탁", "억"}
+    assert kept_terms(found, "튼튼한 책상에 어울리는 특별 할인") == set()
+
+
+def test_shared_words_are_avoided_when_the_judge_named_none() -> None:
+    found = finding("책상에 탁 치면 억 소리 나는 할인", [])
+    assert risk_terms(found) == {"책상에"}
+
+
 def test_company_values_criterion_is_offered() -> None:
     assert CRITERIA[-1].id == "K11"
     assert criteria_texts(["K11"]) == ["기업이 밝힌 가치·브랜드 원칙과의 충돌"]

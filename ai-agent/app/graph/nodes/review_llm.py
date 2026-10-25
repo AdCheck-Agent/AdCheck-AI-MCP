@@ -9,6 +9,8 @@ from app.llm.judge import (
     external_query,
     needs_review,
     note_oversized,
+    quote_retry_hint,
+    quotes_not_in_ad,
     resolve,
 )
 
@@ -33,6 +35,12 @@ def review_llm(state: ReviewState) -> dict:
     judgment = call_model(model, SYSTEM_PROMPT, build_user_prompt(state, catalog))
     if judgment is None:
         return needs_review("모델 판단을 얻지 못해 사람 검토가 필요합니다.")
+    misquoted = quotes_not_in_ad(judgment, state)
+    if misquoted:
+        # A quote the ad never says is dropped below, leaving "risky" with nothing to point at.
+        # Ask once more; if the answer is no better, the guards still send it to a person.
+        prompt = build_user_prompt(state, catalog) + quote_retry_hint(misquoted)
+        judgment = call_model(model, SYSTEM_PROMPT, prompt) or judgment
 
     result = note_oversized(resolve(judgment, state, catalog), state)
     query = external_query(judgment, state, result)
