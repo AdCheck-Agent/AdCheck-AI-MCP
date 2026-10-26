@@ -1,10 +1,10 @@
-"""Combination conditions for reported cases.
+"""신고된 사례의 결합 조건.
 
-A reported case (Starbucks 탱크데이, 무신사 양말 광고, ...) became a controversy because of a
-*combination* of date and wording, not because one of its words appeared. A retrieval hit or a
-model judgment that rests on a single shared word ("탱크톱", "5월 18일 새 텀블러") is not a match.
-`app/rules/case_triggers.json` lists, per case rule_id, the combinations that do count; a case
-that is not listed there is never filtered.
+신고된 사례(스타벅스 탱크데이, 무신사 양말 광고 등)는 단어 하나가 아니라
+날짜와 문구의 *결합* 때문에 논란이 됐다. 단어 하나만 겹치는 검색 결과나
+모델 판정("탱크톱", "5월 18일 새 텀블러")은 일치로 보지 않는다.
+`app/rules/case_triggers.json`에 사례 rule_id별로 인정하는 결합을 적고,
+목록에 없는 사례는 거르지 않는다.
 """
 
 import json
@@ -29,7 +29,7 @@ def load_triggers(path: Path = TRIGGERS_PATH) -> dict[str, list[list[str]]]:
 
 
 def _squash(text: str) -> str:
-    """Spacing and punctuation vary in ads ("책상에 탁!", "책상에탁"); compare without them."""
+    """광고마다 띄어쓰기와 문장부호가 달라서("책상에 탁!", "책상에탁") 이를 빼고 비교한다."""
     return re.sub(r"[\s.,!?;:'\"()\[\]{}~…]+", "", normalize(text))
 
 
@@ -42,7 +42,7 @@ def _has(token: str, text: str, squashed: str) -> bool:
 
 
 def case_applies(rule_id: str | None, text: str) -> bool:
-    """False only when the case has listed conditions and the ad meets none of them."""
+    """사례에 조건이 적혀 있고 광고가 그중 하나도 충족하지 않을 때만 False."""
     groups = load_triggers().get(rule_id or "")
     if not groups:
         return True

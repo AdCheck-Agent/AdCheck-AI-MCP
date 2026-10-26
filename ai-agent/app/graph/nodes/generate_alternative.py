@@ -4,10 +4,10 @@ from app.llm.client import get_review_model
 
 
 def generate_alternative(state: ReviewState) -> dict:
-    """Write a replacement for each risky quote, keeping the ad's purpose.
+    """위험한 표현마다 광고의 목적은 살린 대체 문구를 쓴다.
 
-    A revise result without a trustworthy suggestion is not useful, so any failure
-    (model error, missing item, reused banned wording) falls back to needs_review.
+    믿을 만한 수정안이 없는 revise 결과는 쓸모가 없으므로, 실패하면
+    (모델 오류, 빠진 항목, 금기어 재사용) 모두 needs_review로 넘긴다.
     """
     model = get_review_model()
     if model is None:

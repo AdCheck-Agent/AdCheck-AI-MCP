@@ -134,7 +134,7 @@ async def test_real_graph_run_saves_every_stage_then_completed() -> None:
     levels = [level for _, level in tools.calls]
     assert levels[0] == "BANNED_WORD_CHECK"
     assert levels[-2:] == ["OUTPUT_VALIDATION", "COMPLETED"]
-    assert "COMPANY_VALUES_SEARCH" not in levels  # skipped stage is not saved
+    assert "COMPANY_VALUES_SEARCH" not in levels  # 건너뛴 단계는 저장하지 않는다
 
 
 def _post(tools, monkeypatch, *, break_graph=False, review_id=ID):

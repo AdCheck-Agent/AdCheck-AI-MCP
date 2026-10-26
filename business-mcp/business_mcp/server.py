@@ -66,7 +66,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             str, StringConstraints(strip_whitespace=True, min_length=1, max_length=400)
         ],
     ) -> Annotated[CallToolResult, SearchResult]:
-        """Search public web evidence. Results are unverified; inspect status before use."""
+        """공개 웹 근거를 검색한다. 결과는 검증되지 않았으니 쓰기 전에 status를 확인한다."""
         result = await search_recent_issue(
             query, settings if settings is not None else get_settings()
         )
@@ -83,7 +83,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         result: dict | None = None,
         error: CheckpointError | None = None,
     ) -> Annotated[CallToolResult, CheckpointResult]:
-        """Save a finished stage; COMPLETED may include the final result, FAILED needs error."""
+        """끝난 단계를 저장한다. COMPLETED는 최종 결과를 담을 수 있고, FAILED는 error가 필수다."""
         try:
             result = await save_checkpoint(
                 original_text_id,

@@ -138,7 +138,7 @@ class PgVectorStore:
                     document.corpus,
                     document.document_type,
                     document.title,
-                    # Assigned here, not by authors: unchanged re-uploads keep it, edits bump it.
+                    # 작성자가 아니라 여기서 매긴다. 같은 내용 재업로드는 유지, 바뀌면 올린다.
                     f"v{revision + 1}",
                     checksum,
                     revision + 1,
@@ -206,10 +206,10 @@ class PgVectorStore:
         min_score: float = 0.0,
         document_ids: list[str] | None = None,
     ) -> list[RetrievedEvidence]:
-        """Rank by similarity, or with document_ids return every chunk of the attached files.
+        """유사도로 순위를 매기거나, document_ids가 있으면 첨부 파일의 조각을 모두 돌려준다.
 
-        Attached files are the caller's chosen scope, so top_k/min_score do not apply there;
-        chunks keep the file order and AttachedDocumentsTooLarge replaces silent truncation.
+        첨부 파일은 호출하는 쪽이 고른 범위이므로 top_k/min_score를 적용하지 않는다.
+        조각은 파일 순서를 유지하고, 조용히 잘라내는 대신 AttachedDocumentsTooLarge를 낸다.
         """
         if collection not in ("social", "corporate") or (
             collection == "corporate" and not company_id
@@ -253,7 +253,7 @@ class PgVectorStore:
             )
             params = (vector, scope, collection, vector, min_score, vector, top_k)
         else:
-            # Chunks stored before ordinal existed fall back to chunk_id order.
+            # ordinal이 생기기 전에 저장된 조각은 chunk_id 순서를 따른다.
             sql = select + (
                 "AND d.document_id = ANY(%s::text[]) "
                 "ORDER BY array_position(%s::text[], d.document_id),"

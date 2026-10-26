@@ -72,11 +72,11 @@ def _tokens(text: str) -> set[str]:
 
 
 def risk_terms(finding: Finding) -> set[str]:
-    """Words that evoke the case: those the judge named, else words shared with the evidence.
+    """사례를 떠올리게 하는 단어: 판정이 지목한 단어, 없으면 근거와 겹치는 단어.
 
-    Word overlap alone misses one-syllable triggers (탁, 억), so the judge's own trigger_terms
-    win. Overlap is only the fallback: it also catches the product itself (책상에 in both the
-    ad and the case), and a rewrite would then have to drop what is being sold.
+    단어 겹침만으로는 한 글자 문제 단어(탁, 억)를 놓치므로 판정의 trigger_terms를
+    우선한다. 겹침은 대체 수단일 뿐이다. 겹침은 판매 제품 자체(광고와 사례 모두의
+    책상에)까지 잡아서, 수정안이 파는 물건까지 빼야 하는 문제가 생긴다.
     """
     if finding.trigger_terms:
         return set(finding.trigger_terms)
@@ -87,7 +87,7 @@ def risk_terms(finding: Finding) -> set[str]:
 
 
 def risk_dates(finding: Finding) -> set[str]:
-    """Dates the quote shares with what flagged it, however each side spells them."""
+    """인용과 그 근거가 함께 가진 날짜. 양쪽 표기가 달라도 같은 날짜로 본다."""
     flagged = " ".join([finding.reason, *(e.snippet for e in finding.evidence)])
     return date_keys(finding.quote) & date_keys(flagged)
 
@@ -100,7 +100,7 @@ def _date_label(key: str) -> str:
 def _keeps_risk_term(finding: Finding, suggestion: str) -> set[str]:
     kept = set()
     words = _tokens(suggestion)
-    # One-syllable triggers count only as a word of their own (탁 치면), not inside 탁월한.
+    # 한 글자 문제 단어는 따로 쓰인 경우(탁 치면)만 세고, 다른 단어 안(탁월한)은 세지 않는다.
     singles = {w for w in (t.strip(_EDGE) for t in suggestion.split()) if len(w) == 1}
     for term in risk_terms(finding):
         named = term in finding.trigger_terms and len(term) >= 2 and term in suggestion
@@ -111,7 +111,7 @@ def _keeps_risk_term(finding: Finding, suggestion: str) -> set[str]:
 
 
 def _repeats_rest(source: str, finding: Finding, suggestion: str) -> set[str]:
-    """Parts of the ad outside the quote that the suggestion repeats; they would appear twice."""
+    """수정안이 반복하는 인용 밖 광고 문장. 적용하면 두 번 나오게 된다."""
     removed = apply_with_spans(source, [finding.model_copy(update={"suggestion": "\n"})])
     if removed is None:
         return set()
@@ -129,7 +129,7 @@ def build_prompt(state: ReviewState, retry_hint: str = "") -> str:
             "quote": f.quote,
             "reason": f.reason,
             "avoid": sorted(risk_terms(f)) + [_date_label(k) for k in sorted(risk_dates(f))],
-            # Without the rule it broke, the writer only swaps words and keeps the meaning.
+            # 어긴 기준이 없으면 작성자는 단어만 바꾸고 뜻은 그대로 둔다.
             "rules": [e.snippet[:RULE_CHARS] for e in f.evidence],
         }
         for i, f in enumerate(state["findings"])
@@ -169,7 +169,7 @@ def _request(model: ReviewModel, user: str) -> Alternatives | None:
 def _validate(
     state: ReviewState, alternatives: Alternatives
 ) -> tuple[list[Finding] | None, set[str]]:
-    """Findings with a suggestion each, or None; plus the risk terms a suggestion kept."""
+    """지적마다 수정안이 붙은 목록(없으면 None)과, 수정안이 남긴 위험 단어."""
     by_index = {s.index: s.suggestion.strip() for s in alternatives.suggestions}
     banned = [normalize(h.expression) for h in state["rule_hits"]]
     reused = [normalize(f.quote) for f in state["findings"]] + banned
@@ -196,7 +196,7 @@ def apply_suggestions(source: str, findings: list[Finding]) -> str | None:
 def risky_suggestions(
     model: ReviewModel, state: ReviewState, findings: list[Finding]
 ) -> list[str] | None:
-    """Suggestions that are flagged again once applied to the ad; None if the check failed."""
+    """광고에 적용했을 때 다시 지적되는 수정안. 검사에 실패하면 None."""
     checked = recheck(model, state, findings)
     return None if checked is None else checked[0]
 
@@ -204,10 +204,10 @@ def risky_suggestions(
 def recheck(
     model: ReviewModel, state: ReviewState, findings: list[Finding]
 ) -> tuple[list[str], set[str]] | None:
-    """Re-flagged suggestions and the trigger words the re-check named; None if it failed.
+    """다시 지적된 수정안과 재검사가 짚은 문제 단어. 실패하면 None.
 
-    The fixed ad is judged again with the same evidence. Only a finding that touches the text a
-    suggestion put in counts, so wording the first review left alone cannot reject a fix.
+    고친 광고를 같은 근거로 다시 판정한다. 수정안이 넣은 부분에 걸친 지적만 세므로,
+    처음 검수에서 문제 삼지 않은 표현 때문에 수정안이 탈락하지 않는다.
     """
     applied = apply_with_spans(state["source_text"], findings)
     if applied is None:
@@ -221,10 +221,10 @@ def recheck(
         return None
     resolved = resolve(judgment, rechecked, catalog)
     if resolved["risk"] != "yes":
-        # "uncertain" asks for a person to look; it is not proof that the fix is still risky.
+        # "uncertain"은 사람이 보라는 뜻이지, 수정안이 여전히 위험하다는 증거가 아니다.
         return [], set()
-    # A re-flag counts only when it names a concrete trigger inside the new wording; a vague
-    # "could still be risky" about ordinary words would otherwise reject every rewrite.
+    # 새 문구 안의 구체적인 문제 단어를 짚을 때만 다시 지적된 것으로 본다. 평범한 단어에
+    # "아직 위험할 수 있다"는 막연한 지적까지 세면 모든 수정안이 탈락한다.
     flagged = [
         f
         for f in resolved["findings"]
@@ -244,7 +244,7 @@ def recheck(
 def _verified(
     model: ReviewModel, state: ReviewState, findings: list[Finding]
 ) -> list[Finding] | None:
-    """The findings if their suggestions hold up once applied; one rewrite is allowed."""
+    """적용해도 수정안이 버티면 그 지적 목록을 돌려준다. 다시 쓰기는 한 번 허용한다."""
     checked = recheck(model, state, findings)
     if checked is None:
         return None
@@ -252,7 +252,7 @@ def _verified(
     if not risky:
         return findings
     logger.warning("suggestion flagged again after applying; rewriting once")
-    # Naming the words the re-check objected to keeps the rewrite from repeating them.
+    # 재검사가 문제 삼은 단어를 알려 주어 다시 쓸 때 반복하지 않게 한다.
     named = f" 문제로 지적된 단어: {sorted(terms)}. 이 단어와 같은 뜻을 빼고" if terms else ""
     hint = (
         f"직전 수정안 {risky}을 광고에 적용해 다시 검토했더니 그 자리가 여전히 위험 표현으로 "
@@ -269,11 +269,11 @@ def _verified(
 
 
 def attach_suggestions(model: ReviewModel, state: ReviewState) -> list[Finding] | None:
-    """Return findings with a validated suggestion each, or None if any cannot be trusted.
+    """지적마다 검증된 수정안을 붙여 돌려준다. 하나라도 믿을 수 없으면 None.
 
-    A suggestion that keeps a word the evidence flagged (e.g. the date or event name) gets one
-    more try with that word named; if it still keeps it, a person has to look at it. The fixed
-    ad is then judged again, and a suggestion that is flagged once applied gets one rewrite.
+    근거가 문제 삼은 단어(예: 날짜, 행사명)를 남긴 수정안은 그 단어를 알려 주고
+    한 번 더 시도한다. 그래도 남기면 사람이 봐야 한다. 그다음 고친 광고를 다시
+    판정하고, 적용 뒤 다시 지적된 수정안은 한 번 다시 쓴다.
     """
     alternatives = _request(model, build_prompt(state))
     if alternatives is None:

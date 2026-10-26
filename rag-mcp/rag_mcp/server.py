@@ -91,7 +91,7 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
 
     @mcp.tool(name="search_social_context")
     async def social_tool(query: str, top_k: int = 5, min_score: float = 0.0) -> SearchResult:
-        """Search repository social/history evidence. Scores are cosine similarity, not truth."""
+        """레포의 사회·역사 근거를 검색한다. 점수는 코사인 유사도이며 사실 여부가 아니다."""
         return await social(SearchQuery(query=query, top_k=top_k, min_score=min_score))
 
     @mcp.tool(name="search_corporate_value")
@@ -102,7 +102,7 @@ def create_app(store: PgVectorStore | None = None, settings: Settings | None = N
         min_score: float = 0.0,
         document_ids: list[str] | None = None,
     ) -> SearchResult:
-        """With document_ids, returns every chunk of those files in file order (top_k ignored)."""
+        """document_ids가 있으면 그 파일의 조각을 파일 순서대로 모두 돌려준다(top_k 무시)."""
         return await corporate(
             CorporateQuery(
                 query=query,

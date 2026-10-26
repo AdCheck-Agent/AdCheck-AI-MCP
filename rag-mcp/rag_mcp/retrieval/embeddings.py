@@ -8,10 +8,10 @@ from rag_mcp.errors import EmbeddingUnavailable
 
 
 def token_windows(count: int, limit: int, overlap: int) -> list[tuple[int, int]]:
-    """Evenly sized windows of at most `limit` tokens, each overlapping by at least `overlap`.
+    """최대 `limit` 토큰, 서로 최소 `overlap`만큼 겹치는 균등한 크기의 창.
 
-    Fixed-stride splitting left a short tail (often just a citation line) that ranked
-    near the top for unrelated queries; spreading the tokens evenly avoids that.
+    고정 간격으로 자르면 짧은 끝 조각(대개 출처 한 줄)이 남아 무관한 질문에도
+    상위에 올랐다. 토큰을 고르게 나누면 이를 피할 수 있다.
     """
     if count <= limit:
         return [(0, count)] if count else []
@@ -24,10 +24,10 @@ def token_windows(count: int, limit: int, overlap: int) -> list[tuple[int, int]]
 
 
 def register_if_unsupported(settings: Settings) -> None:
-    """Register models FastEmbed does not list itself (BAAI/bge-m3) as custom ONNX models.
+    """FastEmbed가 스스로 목록에 두지 않는 모델(BAAI/bge-m3)을 사용자 ONNX 모델로 등록한다.
 
-    bge-m3 dense vectors are the CLS token of the last layer, L2-normalised. Weights are the
-    official ONNX export in the model repository (graph file plus one external-data file).
+    bge-m3 dense 벡터는 마지막 층 CLS 토큰을 L2 정규화한 값이다. 가중치는 모델 저장소의
+    공식 ONNX 내보내기(그래프 파일과 외부 데이터 파일 하나)다.
     """
     from fastembed import TextEmbedding
     from fastembed.common.model_description import ModelSource, PoolingType
@@ -56,7 +56,7 @@ class Embeddings(Protocol):
 
 
 class LocalEmbeddings:
-    """Lazy CPU inference; health/startup never downloads model weights."""
+    """필요할 때 CPU로 추론한다. 헬스체크와 시작 시에는 모델 가중치를 받지 않는다."""
 
     def __init__(self, settings: Settings):
         self.settings = settings

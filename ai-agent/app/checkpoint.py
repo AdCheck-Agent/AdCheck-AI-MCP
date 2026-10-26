@@ -1,9 +1,9 @@
-"""Send "this stage is finished" to the backend, through the Business MCP save_checkpoint Tool.
+"""Business MCP의 save_checkpoint Tool로 BE에 "이 단계가 끝났다"를 보낸다.
 
-Why a queue: the backend simply overwrites the stage with whatever it receives, so the calls
-for one review must arrive in order and a late old one must never overtake a newer one.
-One worker sends them one by one. Nodes only drop an event in the queue and never wait, so a
-slow or broken backend cannot slow down or fail a review.
+큐를 쓰는 이유: BE는 받은 단계로 그대로 덮어쓰므로, 한 검수의 호출은
+순서대로 도착해야 하고 늦게 온 이전 호출이 새 호출을 앞지르면 안 된다.
+워커 하나가 하나씩 보낸다. 노드는 이벤트를 큐에 넣기만 하고 기다리지 않으므로,
+BE가 느리거나 고장 나도 검수가 늦어지거나 실패하지 않는다.
 """
 
 import asyncio
@@ -21,11 +21,11 @@ _STOP = object()
 
 
 class CheckpointSink:
-    """EventSink that saves a checkpoint each time a stage SUCCEEDS.
+    """단계가 성공할 때마다 체크포인트를 저장하는 EventSink.
 
-    Skipped and failed stages are not saved. Only a validated review sends COMPLETED,
-    with its final result, so a needs_review verdict still completes the backend job.
-    A review that times out or raises sends FAILED instead, so the backend job ends too.
+    건너뛴 단계와 실패한 단계는 저장하지 않는다. 검증을 마친 검수만 최종 결과와 함께
+    COMPLETED를 보내므로, needs_review 판정도 BE 작업을 끝낸다.
+    시간 초과나 예외로 끝난 검수는 대신 FAILED를 보내 BE 작업을 끝낸다.
     """
 
     def __init__(
@@ -59,11 +59,11 @@ class CheckpointSink:
     def _put(self, level: str, extra: dict | None = None) -> None:
         if self.worker is None:
             return
-        # Nodes can run in worker threads, so hand over to the event loop thread-safely.
+        # 노드는 워커 스레드에서 돌 수 있으므로 이벤트 루프에 스레드 안전하게 넘긴다.
         self.loop.call_soon_threadsafe(self.queue.put_nowait, (level, extra or {}))
 
     async def close(self, timeout: float = 5) -> None:
-        """Wait (briefly) until everything queued has been sent."""
+        """큐에 쌓인 것을 모두 보낼 때까지 (잠깐) 기다린다."""
         if self.worker is None:
             return
         self.loop.call_soon_threadsafe(self.queue.put_nowait, _STOP)
@@ -79,7 +79,7 @@ class CheckpointSink:
 
     async def _send(self, level: str, extra: dict) -> None:
         assert self.original_text_id is not None
-        # A retryable failure is retried once, here, before the next stage is sent.
+        # 재시도할 수 있는 실패는 다음 단계를 보내기 전에 여기서 한 번 재시도한다.
         for attempt in (1, 2):
             try:
                 result = await self.tools.save_checkpoint(self.original_text_id, level, **extra)

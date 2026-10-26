@@ -43,14 +43,14 @@ CheckpointLevel = Literal[ReviewStage, "COMPLETED", "FAILED"]
 
 
 class CheckpointError(BaseModel):
-    """Why the review could not finish; sent only with the FAILED CP."""
+    """검수를 끝내지 못한 이유. FAILED CP에만 담는다."""
 
     model_config = ConfigDict(extra="forbid")
     code: Literal["REVIEW_TIMEOUT", "REVIEW_ERROR"]
     message: str = Field(min_length=1, max_length=500)
-    # The stage that was running when it failed; None when no stage had started.
+    # 실패할 때 실행 중이던 단계. 어떤 단계도 시작하기 전이면 None.
     stage: ReviewStage | None = None
-    # The agent's trace for this review, so the backend can match it like a COMPLETED result.
+    # 이번 검수의 Agent trace. BE가 COMPLETED 결과처럼 대조할 수 있게 한다.
     trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")
 
 
@@ -58,7 +58,7 @@ CheckpointStatus = Literal["ok", "timeout", "unavailable", "error"]
 
 
 class CheckpointResult(BaseModel):
-    """Outcome of one PATCH /api/v1/reviews/checkpoint call to the backend."""
+    """BE에 보낸 PATCH /api/v1/reviews/checkpoint 호출 한 번의 결과."""
 
     status: CheckpointStatus
     http_status: int | None = None

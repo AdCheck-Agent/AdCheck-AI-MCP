@@ -1,4 +1,4 @@
-"""Exercise the MCP SDK directly, independently of Agent code."""
+"""Agent 코드와 상관없이 MCP SDK를 직접 실행해 본다."""
 
 from pathlib import Path
 
@@ -13,7 +13,7 @@ DATA = Path(__file__).resolve().parents[1] / "data" / "corporate"
 
 
 async def test_uploaded_demo_documents_through_mcp(db_store):
-    """Real PostgreSQL + MCP protocol, deterministic test embeddings (not quality evaluation)."""
+    """실제 PostgreSQL + MCP 프로토콜, 결정적인 테스트 임베딩 (품질 평가가 아님)."""
     app = create_app(store=db_store)
     async with app.router.lifespan_context(app):
         async with httpx.AsyncClient(

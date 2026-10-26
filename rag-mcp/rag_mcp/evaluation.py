@@ -1,7 +1,7 @@
-"""Real-embedding retrieval evaluation against a dedicated *_eval / *_test database.
+"""전용 *_eval / *_test DB에서 실제 임베딩으로 하는 검색 평가.
 
-Recall targets come from tests/fixtures/retrieval_cases.json. Scores are cosine similarity,
-not fact probability; the report measures ranking only, never a review verdict.
+회수 대상은 tests/fixtures/retrieval_cases.json에서 온다. 점수는 사실일 확률이 아니라
+코사인 유사도이며, 이 보고서는 순위만 재고 검수 판정은 재지 않는다.
 """
 
 import argparse
@@ -28,7 +28,7 @@ SAFE_SUFFIXES = ("_eval", "_test")
 
 
 def first_hit_rank(rule_ids: list[str], expected: list[str]) -> int | None:
-    """1-based rank of the first returned chunk whose rule_id is an expected target."""
+    """rule_id가 기대 대상인 첫 조각의 순위(1부터)."""
     return next((i for i, rule_id in enumerate(rule_ids, 1) if rule_id in expected), None)
 
 
@@ -111,7 +111,7 @@ def summarize(results: list[dict], top_k: int) -> dict:
 
 
 async def load_corpus(store: PgVectorStore, embeddings: Embeddings, settings: Settings) -> dict:
-    """Wipe the dedicated DB and index the manifest social docs plus every demo CSV."""
+    """전용 DB를 비우고 manifest의 사회 문서와 모든 데모 CSV를 색인한다."""
     await store.initialize()
     async with store.connection() as conn:
         await conn.execute("DELETE FROM adcheck_rag.documents")
@@ -154,7 +154,7 @@ async def run(args: argparse.Namespace) -> dict:
     store = PgVectorStore(settings, embeddings)
     fixture = json.loads(args.cases.read_text("utf-8"))
     indexed = await load_corpus(store, embeddings, settings)
-    await embeddings.embed(["warm-up"])  # exclude model load time from latency
+    await embeddings.embed(["warm-up"])  # 응답 시간에서 모델 로드 시간을 뺀다
     results = await evaluate(store, fixture["cases"], top_k=args.top_k, min_score=args.min_score)
     return {
         "embedding_profile": embeddings.profile,

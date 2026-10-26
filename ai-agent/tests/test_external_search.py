@@ -59,7 +59,7 @@ async def test_graph_search_once_and_no_automatic_pass(
     tools = FakeBusinessTools(status)
     result = await graph_module.build_graph(tools).ainvoke(state())
     assert tools.calls == 1
-    assert review_calls == 2  # Empty results and failures also reach the final reviewer.
+    assert review_calls == 2  # 빈 결과와 실패도 최종 판정까지 전달된다.
     assert result["external_search_attempted"] is True
     assert result["status"] == "needs_review"
     assert result["external_search_result"].status == status
@@ -139,7 +139,7 @@ async def test_empty_external_result_does_not_override_internal_evidence(
     evidence = Evidence(document="합성 기준", section="일반 표현", snippet="테스트용 근거")
 
     def reviewer(state: ReviewState) -> dict:
-        # Simulate the final reviewer accepting existing RAG evidence after an empty web search.
+        # 웹 검색이 비어 있어도 최종 판정이 기존 RAG 근거를 받아들이는 상황을 흉내 낸다.
         enough = state["external_search_attempted"] and bool(state["social_context_evidence"])
         return {
             "external_search_query": "추가 공개 사실 확인",

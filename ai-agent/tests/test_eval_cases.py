@@ -26,7 +26,7 @@ def test_eval_set_is_large_and_covers_every_status() -> None:
 def test_case_reaches_expected_status(case: dict) -> None:
     script = list(case["scripted"])
     if case["expected_status"] == "revise":
-        script.append(CLEAN)  # the fixed ad is judged again and found safe
+        script.append(CLEAN)  # 고친 광고를 다시 판정해 안전하다고 나옴
     response = run_case(case, ScriptedModel(script))
     assert response.status == case["expected_status"], response.summary
     assert missing_quotes(case, response) == []
@@ -37,7 +37,7 @@ def test_case_reaches_expected_status(case: dict) -> None:
 
 
 def test_real_model_set_is_ready_for_the_quality_sheet() -> None:
-    """The quality sheet needs 20 inputs, incl. unanswerable and failure-inducing ones."""
+    """품질 점검표에는 답할 수 없는 입력과 실패 유도 입력을 포함해 20개 입력이 필요하다."""
     real = [c for c in CASES if c.get("real_model")]
     assert len(real) >= 23
     assert {c["type"] for c in real} == {"답 가능", "답 불가", "실패 유도"}

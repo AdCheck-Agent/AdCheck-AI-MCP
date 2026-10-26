@@ -1,4 +1,4 @@
-"""Original-text locations. Wire offsets use UTF-16, Python slicing uses code points."""
+"""원문 위치. 주고받는 위치는 UTF-16 기준이고, 파이썬 슬라이싱은 코드 포인트 기준이다."""
 
 import re
 import unicodedata
@@ -14,8 +14,8 @@ def quote_spans(source: str, quote: str) -> list[tuple[int, int]]:
     target = " ".join(unicodedata.normalize("NFKC", quote).casefold().split())
     if not target:
         return []
-    # Keep the source span of each normalized character, including composed Hangul,
-    # combining marks and characters that expand under NFKC/casefold.
+    # 정규화한 글자마다 원문 위치를 기억한다. 조합형 한글, 결합 문자,
+    # NFKC/casefold에서 길어지는 문자도 포함한다.
     normalized = ""
     positions: list[tuple[int, int]] = []
     previous_end = 0
@@ -78,7 +78,7 @@ def locate_findings(source: str, findings: list[Finding]) -> list[Finding]:
 def apply_with_spans(
     source: str, findings: list[Finding]
 ) -> tuple[str, list[tuple[str, int, int]]] | None:
-    """Apply every occurrence and return replacement positions in the revised text."""
+    """모든 등장 위치에 적용하고, 수정된 문구에서의 교체 위치를 돌려준다."""
     ranges: dict[tuple[int, int], str] = {}
     for finding in findings:
         located = locate_findings(source, [finding])

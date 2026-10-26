@@ -28,7 +28,7 @@ def _retrieved_keys(state: ReviewState) -> set[tuple[str, str, str]]:
 def _check_finding(
     finding: Finding, source: str, retrieved: set[tuple[str, str, str]]
 ) -> str | None:
-    """Return why a finding cannot be trusted, or None when it is fine."""
+    """지적을 믿을 수 없는 이유를 돌려준다. 문제가 없으면 None."""
     if not finding.quote.strip() or normalize(finding.quote) not in source:
         return "원문에 없는 인용"
     if any(_key(e) not in retrieved for e in finding.evidence):
@@ -37,7 +37,7 @@ def _check_finding(
 
 
 def _missing_information(state: ReviewState) -> list[str]:
-    """Gaps a person should know about: what the review could not check."""
+    """사람이 알아야 할 빈틈: 이번 검수에서 확인하지 못한 것."""
     missing: list[str] = []
     errors = state["rag_errors"]
     if "COMPANY_NOT_SPECIFIED" in errors:
@@ -53,11 +53,11 @@ def _missing_information(state: ReviewState) -> list[str]:
 
 
 def validate_result(state: ReviewState) -> dict:
-    """Last gate before the response leaves the agent.
+    """응답이 Agent를 떠나기 전 마지막 관문.
 
-    Shape errors raise (a bug, surfaced as an error). Content problems never ship as a
-    confident answer: untrustworthy findings are dropped, and a status that is no longer
-    backed up is downgraded to needs_review.
+    형식 오류는 예외를 낸다(버그이므로 오류로 드러낸다). 내용 문제는 확신 있는 답으로
+    내보내지 않는다. 믿을 수 없는 지적은 버리고, 더 이상 뒷받침되지 않는 status는
+    needs_review로 낮춘다.
     """
     ReviewResponse.model_validate(state)
 
@@ -100,7 +100,7 @@ def validate_result(state: ReviewState) -> dict:
     if missing:
         update["missing_information"] = missing
     if state.get("related_criteria") and (not kept or status == "pass"):
-        # Criteria explain findings; with no finding left there is nothing to explain.
+        # 관련 기준은 지적을 설명하는 것이므로, 남은 지적이 없으면 설명할 것도 없다.
         update["related_criteria"] = []
     if kept != state["findings"]:
         update["findings"] = kept

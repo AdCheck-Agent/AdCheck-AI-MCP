@@ -21,6 +21,6 @@ async def search_corporate_value(
             document_ids=document_ids,
         )
     except AttachedDocumentsTooLarge as exc:
-        # Partial evidence could hide the conflicting row, so return none.
+        # 일부 근거만 보면 충돌하는 행을 놓칠 수 있으므로 아무것도 돌려주지 않는다.
         return SearchResult(status="too_large", message=str(exc))
     return SearchResult(evidence=evidence, status="ok" if evidence else "empty")

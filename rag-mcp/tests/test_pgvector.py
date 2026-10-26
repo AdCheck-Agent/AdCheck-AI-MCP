@@ -20,7 +20,7 @@ async def test_save_search_tenant_delete_and_idempotency(db_store, embeddings):
     doc = await corporate_document([policy()], embeddings)
     result = await db_store.replace(doc, expected_revision=0)
     assert (result.revision, result.version) == (1, "v1")
-    assert (await db_store.replace(doc)).version == "v1"  # identical re-upload
+    assert (await db_store.replace(doc)).version == "v1"  # 같은 내용 재업로드
     await db_store.replace(await corporate_document([policy("test_b")], embeddings))
     found = await db_store.search("인권 노동", collection="corporate", company_id="test_a")
     assert found and all(e.company_id == "test_a" for e in found)
@@ -66,7 +66,7 @@ async def test_attached_documents_return_every_chunk_in_file_order(db_store, emb
         top_k=1,
         min_score=1.0,
     )
-    # top_k / min_score do not apply; attachment order, then file row order.
+    # top_k / min_score는 적용되지 않는다. 첨부 순서, 그다음 파일 행 순서.
     assert [(e.document_id, e.row_id) for e in found] == [
         ("other", "p1"),
         ("policy", "p1"),
@@ -85,7 +85,7 @@ async def test_attached_documents_over_limit_are_not_truncated(db_store, embeddi
             "인권", collection="corporate", company_id="test_a", document_ids=["policy"]
         )
     assert error.value.chars == 50 and error.value.limit == 49
-    # The limit applies to attached files only; ranked search still returns top_k.
+    # 상한은 첨부 파일에만 적용된다. 순위 검색은 여전히 top_k를 돌려준다.
     assert await db_store.search("인권", collection="corporate", company_id="test_a")
 
 

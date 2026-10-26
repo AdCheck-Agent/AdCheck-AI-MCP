@@ -1,4 +1,4 @@
-"""Shared runner: builds a graph state from a case and runs it with a given model."""
+"""공용 실행기: 케이스로 그래프 상태를 만들고 주어진 모델로 실행한다."""
 
 import asyncio
 import json
@@ -11,8 +11,8 @@ from app.llm.client import ReviewModel, set_review_model
 from app.schemas.review import Evidence, ReviewRequest, ReviewResponse
 
 CASES_PATH = Path(__file__).parent / "cases.json"
-# Bump when real-model cases are added or their expectations change, so before/after runs compare
-# the same set.
+# 실제 모델용 케이스를 더하거나 기대값을 바꾸면 올린다. 그래야 개선 전후가
+# 같은 평가셋으로 비교된다.
 EVAL_SET_VERSION = "v5"
 
 
@@ -49,7 +49,7 @@ def run_case(case: dict, model: ReviewModel | None) -> ReviewResponse:
             ),
         ):
             graph = graph_module.build_graph()
-            # The external search node is async-only, so the graph must run on the async API.
+            # 외부 검색 노드는 비동기 전용이므로 그래프를 비동기 API로 실행해야 한다.
             result = asyncio.run(graph.ainvoke(initial_state(request)))
             return ReviewResponse.model_validate(result)
     finally:
@@ -57,6 +57,6 @@ def run_case(case: dict, model: ReviewModel | None) -> ReviewResponse:
 
 
 def missing_quotes(case: dict, response: ReviewResponse) -> list[str]:
-    """Expected quotes that no finding points at (a risky phrase the model overlooked)."""
+    """어떤 지적도 가리키지 않은 기대 인용 (모델이 놓친 위험 표현)."""
     found = " ".join(f.quote for f in response.findings)
     return [q for q in case.get("expected_quotes", []) if q not in found]

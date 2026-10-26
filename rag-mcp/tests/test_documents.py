@@ -41,7 +41,7 @@ def test_all_samples_have_equivalent_csv_xlsx() -> None:
         rows = parse_policies(csv_file.name, csv_file.read_bytes(), Settings(), *ids)
         assert rows == parse_policies(xlsx.name, xlsx.read_bytes(), Settings(), *ids)
         assert {(r.company_id, r.document_id) for r in rows} == {ids}
-        # corporate_values adds brand-direction rows (mission, tone, audience) to the 3 rules.
+        # corporate_values는 규칙 3개에 브랜드 방향 행(미션, 톤, 고객)을 더한다.
         expected = 8 if csv_file.stem == "corporate_values" else 3
         assert len(rows) == expected
 
@@ -98,7 +98,7 @@ async def test_social_manifest_excludes_corporate_and_research(embeddings) -> No
 
 
 def test_ids_come_from_the_caller_not_the_file() -> None:
-    # BE names documents with UUIDs it creates at upload time, so files cannot carry them.
+    # BE는 업로드할 때 만든 UUID로 문서를 부르므로, 파일에 이를 담을 수 없다.
     company, document = (
         "6f1c2a4e-0b7d-4c1e-9a55-3d2f8e9b1c00",
         "1b9d6bcd-bbfd-4b2d-9b5d-ab8dfbbd4bed",
@@ -149,7 +149,7 @@ def test_xlsx_accepts_blank_trailing_optional_columns() -> None:
     sheet = wb.active
     sheet.title = "policies"
     sheet.append(order)
-    sheet.append([row[c] for c in order[:-2]])  # Excel stores no cells for the blank tail
+    sheet.append([row[c] for c in order[:-2]])  # 엑셀은 끝의 빈 칸을 저장하지 않는다
     buffer = io.BytesIO()
     wb.save(buffer)
     parsed = parse("x.xlsx", buffer.getvalue())
@@ -163,7 +163,7 @@ async def test_social_chunks_drop_link_targets_but_keep_sources(embeddings) -> N
         assert all("](" not in c.content and "http" not in c.content for c in doc.chunks)
         assert doc.metadata["source_urls"]
     history = next(d for d in docs if d.metadata["rule_id"] == "RULE-HIST-001")
-    assert any("국립5·18민주묘지" in c.content for c in history.chunks)  # link label stays
+    assert any("국립5·18민주묘지" in c.content for c in history.chunks)  # 링크 표시 문구는 남는다
 
 
 @pytest.mark.parametrize("count", [0, 1, 96, 97, 110, 181, 300, 1000])

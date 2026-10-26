@@ -164,8 +164,8 @@ async def test_invalid_background_result_is_logged(caplog) -> None:
 
 
 async def test_202_body_is_sent_before_background_work_finishes() -> None:
-    # TestClient and httpx's ASGI transport wait for BackgroundTasks even after the
-    # response body is sent. Observe ASGI send directly to test the HTTP boundary.
+    # TestClient와 httpx의 ASGI transport는 응답 본문을 보낸 뒤에도 BackgroundTasks를
+    # 기다린다. HTTP 경계를 테스트하려고 ASGI send를 직접 관찰한다.
     release = asyncio.Event()
     both_started = asyncio.Event()
     sent = [asyncio.Event(), asyncio.Event()]

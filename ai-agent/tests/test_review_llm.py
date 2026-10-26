@@ -134,7 +134,7 @@ def test_quote_not_in_source_is_dropped_and_risk_downgraded() -> None:
     assert result["findings"] == []
     assert result["risk"] == "uncertain"
     assert not result["evidence_sufficient"]
-    assert len(model.calls) == 2  # asked once more to quote the ad
+    assert len(model.calls) == 2  # 광고에서 인용하라고 한 번 더 요청함
     assert "광고 원문에 없습니다" in model.calls[1][1]
 
 
@@ -205,12 +205,12 @@ def test_graph_end_to_end_with_model_and_evidence(
         "retrieve_social_context",
         lambda state: {"social_context_evidence": [evidence()]},
     )
-    # TEXT also holds a banned expression, which gets a second finding and its own suggestion.
+    # TEXT에는 금기어도 있어서 두 번째 지적과 그 수정안이 생긴다.
     alternative = (
         '{"suggestions": [{"index": 0, "suggestion": "봄맞이 감사 할인"},'
         ' {"index": 1, "suggestion": "지금 만나보세요"}]}'
     )
-    clean = judgment(risk="no", findings=[])  # the fixed ad, judged again
+    clean = judgment(risk="no", findings=[])  # 고친 광고를 다시 판정
     set_review_model(FakeModel(raw, alternative, clean))
     graph = graph_module.build_graph()
     result = graph.invoke(initial_state(ReviewRequest(text=text, context={"channel": "sns"})))

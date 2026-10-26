@@ -1,8 +1,8 @@
-"""Run the evaluation cases against the real model (needs OPENAI_API_KEY).
+"""실제 모델로 평가 케이스를 실행한다(OPENAI_API_KEY 필요).
 
     PYTHONPATH=ai-agent python ai-agent/evaluation/run_eval.py [--label before] [--csv out.csv]
 
---csv writes the table used in the "AI 출력 품질 점검" sheet (UTF-8 with BOM, opens in Excel).
+--csv는 "AI 출력 품질 점검" 시트에 쓰는 표를 저장한다(UTF-8 BOM, 엑셀에서 열림).
 """
 
 import argparse
@@ -19,7 +19,7 @@ from evaluation.harness import EVAL_SET_VERSION, load_cases, missing_quotes, run
 
 
 class RecordingModel:
-    """Wraps the real model and keeps its raw answers so a failed case can be explained."""
+    """실제 모델을 감싸고 원본 응답을 보관해, 실패한 케이스를 설명할 수 있게 한다."""
 
     def __init__(self, inner) -> None:
         self.inner, self.raw = inner, []
@@ -28,7 +28,7 @@ class RecordingModel:
         try:
             answer = self.inner.generate(system, user)
         except Exception as exc:
-            # The graph turns a failed call into needs_review; say why instead of hiding it.
+            # 그래프는 호출 실패를 needs_review로 바꾸므로, 숨기지 말고 이유를 보여 준다.
             body = getattr(getattr(exc, "response", None), "text", "")
             print(f"     모델 호출 오류: {type(exc).__name__}: {exc} {body[:300]}")
             raise
@@ -37,7 +37,7 @@ class RecordingModel:
 
 
 def prompt_version() -> str:
-    """Short git hash of the code that produced the run (what 'prompt version' means here)."""
+    """이번 실행을 만든 코드의 짧은 git 해시 (여기서 말하는 '프롬프트 버전')."""
     try:
         out = subprocess.run(
             ["git", "rev-parse", "--short", "HEAD"], capture_output=True, text=True, check=True
@@ -79,7 +79,7 @@ def write_csv(
 
 
 def run_once(cases: list[dict], model: RecordingModel, wins: Counter) -> tuple[int, Counter, list]:
-    """One pass over the cases; `wins` counts, per case id, how many passes matched."""
+    """케이스를 한 바퀴 실행한다. `wins`는 케이스 id별로 몇 번 맞았는지 센다."""
     matched, confusion, rows = 0, Counter(), []
     for number, case in enumerate(cases, start=1):
         model.raw.clear()

@@ -39,7 +39,7 @@ async def test_async_graph_reaches_end() -> None:
 def test_full_graph_branches(
     monkeypatch: pytest.MonkeyPatch, sufficient: bool, risk: str, expected: str
 ) -> None:
-    # Test-only reviewer simulates future decisions; production mock never fabricates sufficiency.
+    # 테스트 전용 검수기가 앞으로의 판정을 흉내 낸다. 실제 mock은 근거 충분을 지어내지 않는다.
     evidence = Evidence(document="기준 v1", section="역사", snippet="사건 소비 금지")
     found = Finding(
         category="historical_context",

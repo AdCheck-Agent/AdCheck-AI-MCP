@@ -24,7 +24,7 @@ async def review(
     background_tasks: BackgroundTasks,
     graph: Annotated[CompiledStateGraph, Depends(get_graph)],
 ) -> ReviewAccepted:
-    """Acknowledge the request, then execute the review after sending HTTP 202."""
+    """요청을 접수하고, HTTP 202를 보낸 뒤 검수를 실행한다."""
     state = initial_state(payload)
     trace_id = state["trace_id"]
     background_tasks.add_task(

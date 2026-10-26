@@ -56,5 +56,5 @@ def test_banned_expression_the_model_already_flagged_is_not_duplicated() -> None
 
 
 def test_no_risk_never_adds_findings() -> None:
-    # A banned hit with "no risk" is held for a person elsewhere; it never becomes a finding here.
+    # "위험 없음"인 금기어는 다른 곳에서 사람 검토로 보류된다. 여기서 지적이 되지 않는다.
     assert resolve_with("no")["findings"] == []

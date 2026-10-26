@@ -26,18 +26,18 @@ class FakeModel:
 CLEAN = json.dumps(
     {"risk": "no", "evidence_sufficient": True, "summary": "위험 없음", "findings": []},
     ensure_ascii=False,
-)  # the judge's answer when it looks at the fixed ad again
+)  # 고친 광고를 다시 볼 때 판정의 응답
 
 
 def flagged(quote: str, risk: str = "yes") -> str:
-    """The judge's answer when the fixed ad still carries a risky expression."""
+    """고친 광고에 위험한 표현이 남아 있을 때 판정의 응답."""
     finding = {
         "category": "historical_context",
         "severity": "high",
         "quote": quote,
         "reason": "수정안에도 같은 사건이 연상됩니다.",
         "evidence_ids": ["S1"],
-        "trigger_terms": [quote.split()[0]],  # the re-check must name the word it objects to
+        "trigger_terms": [quote.split()[0]],  # 재검사는 문제 삼은 단어를 짚어야 한다
         "needs_human_review": False,
     }
     return json.dumps(
@@ -92,9 +92,9 @@ def test_suggestion_is_attached_to_each_finding() -> None:
 @pytest.mark.parametrize(
     "raw",
     [
-        alt((0, "탱크데이 특별전")),  # reuses the original quote
-        alt((0, "지금 놓치면 안 사면 평생 후회")),  # reuses a banned expression
-        alt((1, "엉뚱한 index")),  # no answer for finding 0
+        alt((0, "탱크데이 특별전")),  # 원래 인용을 다시 씀
+        alt((0, "지금 놓치면 안 사면 평생 후회")),  # 금기어를 다시 씀
+        alt((1, "엉뚱한 index")),  # 0번 지적에 대한 답이 없음
         alt((0, "   ")) if False else json.dumps({"suggestions": [{"index": 0, "suggestion": ""}]}),
     ],
 )
@@ -153,7 +153,7 @@ def test_graph_end_to_end_returns_suggestion(monkeypatch: pytest.MonkeyPatch) ->
     response = ReviewResponse.model_validate(result)
     assert response.status == "revise"
     assert response.findings[0].suggestion == "봄맞이 감사 할인"
-    # TEXT also holds a banned expression the model did not flag: it is listed and gets a fix too.
+    # TEXT에는 모델이 지적하지 않은 금기어도 있다. 이것도 목록에 들어가고 수정안을 받는다.
     banned = response.findings[1]
     assert (banned.detection_type, banned.quote) == ("SEMANTIC", "안 사면 평생 후회")
     assert banned.suggestion == "지금 만나보세요"
@@ -195,7 +195,7 @@ def test_suggestion_keeping_a_flagged_word_is_retried_once() -> None:
     assert result["status"] == "revise"
     assert result["findings"][0].suggestion == "감사 특가"
     assert len(model.calls) == 3
-    assert "탱크데이" in model.calls[1][1]  # the retry names the word to drop
+    assert "탱크데이" in model.calls[1][1]  # 재시도 안내에 뺄 단어가 들어간다
 
 
 def test_suggestion_still_keeping_the_word_goes_to_a_person() -> None:
@@ -211,7 +211,7 @@ def generate_alternative_with(model: FakeModel) -> dict:
 
 
 def price_state() -> ReviewState:
-    """'518원' is flagged as 5·18; the evidence spells the date differently from the quote."""
+    """'518원'이 5·18로 지적된다. 근거의 날짜 표기는 인용과 다르다."""
     state = initial_state(ReviewRequest(text="518원 할인 혜택", context={"channel": "sns"}))
     state["findings"] = [
         Finding(
@@ -255,7 +255,7 @@ def test_suggestion_keeping_the_flagged_date_is_retried(kept: str) -> None:
     result = generate_alternative(price_state())
     assert result["status"] == "revise"
     assert result["findings"][0].suggestion == "특별 할인 혜택"
-    assert "5월 18일" in model.calls[1][1]  # the retry names the date to drop
+    assert "5월 18일" in model.calls[1][1]  # 재시도 안내에 뺄 날짜가 들어간다
 
 
 def test_suggestion_still_keeping_the_flagged_date_goes_to_a_person() -> None:
@@ -266,7 +266,7 @@ def test_suggestion_still_keeping_the_flagged_date_goes_to_a_person() -> None:
 
 
 def judged_state(text: str, quote: str) -> ReviewState:
-    """A revise state that carries the retrieved evidence, so the fixed ad can be judged again."""
+    """검색된 근거를 담은 revise 상태. 고친 광고를 다시 판정할 수 있게 한다."""
     state = initial_state(ReviewRequest(text=text, context={"channel": "sns"}))
     evidence = Evidence(document="기준 v1", section="역사", snippet="사건 소비 금지")
     state["social_context_evidence"] = [evidence]
@@ -306,7 +306,7 @@ def test_suggestion_flagged_after_applying_is_rewritten_once() -> None:
     result = run_with(model, judged_state("우리 매장 탱크데이 특가", "탱크데이"))
     assert result["status"] == "revise"
     assert result["findings"][0].suggestion == "봄맞이 감사 할인"
-    assert "기념일 특가" in model.calls[2][1]  # the rewrite names the rejected suggestion
+    assert "기념일 특가" in model.calls[2][1]  # 다시 쓰기 안내에 탈락한 수정안이 들어간다
 
 
 def test_suggestion_still_flagged_after_the_rewrite_goes_to_a_person() -> None:

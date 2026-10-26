@@ -45,7 +45,7 @@ def _corporate_arguments(query: str, company_id: str, document_ids: list[str] | 
 
 
 class RagMCPClient:
-    """HTTP alternative for diagnostics; caller owns AsyncClient lifecycle and timeout."""
+    """진단용 HTTP 대체 클라이언트. AsyncClient 수명과 시간 제한은 호출하는 쪽이 관리한다."""
 
     def __init__(self, http: httpx.AsyncClient) -> None:
         self.http = http
@@ -67,7 +67,7 @@ class RagMCPClient:
 
 
 class RagMCPTransportClient:
-    """MCP v1 SDK client. Graph owners may inject this implementation of RagTools."""
+    """MCP v1 SDK 클라이언트. 그래프 쪽에서 RagTools 구현으로 주입할 수 있다."""
 
     def __init__(self, url: str, timeout: float = 30):
         self.url, self.timeout = url, timeout

@@ -12,7 +12,7 @@ def normalize(text: str) -> str:
 
 
 def load_rules(rules_path: Path = RULES_PATH) -> list[RuleHit]:
-    # TODO: replace JSON loading with RDB/API retrieval after database ownership is agreed.
+    # TODO: DB 소유권이 정해지면 JSON 대신 RDB/API에서 불러온다.
     return [RuleHit.model_validate(item) for item in json.loads(rules_path.read_text("utf-8"))]
 
 

@@ -49,7 +49,7 @@ class BusinessTools(Protocol):
 
 
 class BusinessMCPClient:
-    """HTTP Tool adapter; real MCP transport is a separate integration task."""
+    """HTTP Tool 어댑터. 실제 MCP 전송은 별도 연동 작업이다."""
 
     def __init__(self, http: httpx.AsyncClient) -> None:
         self.http = http
@@ -57,7 +57,7 @@ class BusinessMCPClient:
     async def search_recent_issue(self, query: str) -> RecentIssueResult:
         response = await self.http.post("/tools/search_recent_issue", json={"query": query})
         if response.status_code in (502, 503, 504):
-            # Preserve a typed failure for the Agent's judgment/error policy.
+            # 실패 상태를 타입 그대로 넘겨 Agent의 판정·오류 정책이 쓰게 한다.
             result = RecentIssueResult.model_validate(response.json())
             expected_status = {502: "error", 503: "unavailable", 504: "timeout"}
             if result.status == expected_status[response.status_code] and not result.results:
@@ -67,11 +67,11 @@ class BusinessMCPClient:
 
 
 class BusinessMCPTransportClient:
-    """MCP (Streamable HTTP) client for the Business server's search_recent_issue Tool.
+    """Business 서버의 search_recent_issue Tool을 부르는 MCP (Streamable HTTP) 클라이언트.
 
-    A failed search still carries a typed result in structuredContent (isError is true), so
-    the status is preserved instead of being turned into an empty search. Anything that
-    cannot be read as a result becomes ValueError, which the search node reports as `error`.
+    검색이 실패해도 structuredContent에 타입이 있는 결과가 담겨 오므로(isError는 true),
+    빈 검색으로 바꾸지 않고 상태를 그대로 보존한다. 결과로 읽을 수 없는 응답은
+    ValueError가 되고, 검색 노드는 이를 `error`로 보고한다.
     """
 
     def __init__(
@@ -113,7 +113,7 @@ class BusinessMCPTransportClient:
         result: dict | None = None,
         error: dict | None = None,
     ) -> CheckpointResult:
-        """Ask the Business server to record the finished stage on the backend."""
+        """끝난 단계를 BE에 기록하도록 Business 서버에 요청한다."""
         arguments = {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level}
         if result is not None:
             arguments["result"] = result

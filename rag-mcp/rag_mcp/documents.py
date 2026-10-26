@@ -15,8 +15,8 @@ from rag_mcp.errors import DocumentError
 from rag_mcp.retrieval.embeddings import Embeddings
 from rag_mcp.schemas import Chunk, DocumentRecord, PolicyRow
 
-# The URL (or a sample's path) names the company and document. Older files may still carry
-# these two columns; they are accepted but their values are ignored.
+# 기업과 문서는 URL(샘플이면 파일 경로)로 정한다. 예전 파일에 이 두 컬럼이
+# 남아 있을 수 있어서 받기는 하지만 값은 무시한다.
 IDENTITY = ("company_id", "document_id")
 COLUMNS = [name for name in PolicyRow.model_fields if name not in IDENTITY]
 MARKDOWN_LINK = re.compile(r"\[([^\]]+)\]\([^)\s]+\)")
@@ -56,7 +56,7 @@ def _table(filename: str, data: bytes, settings: Settings) -> list[list]:
                 if any(cell.data_type == "f" for cell in cells):
                     raise DocumentError("수식은 지원하지 않습니다. 계산된 값을 넣어 주세요.")
                 table.append([cell.value for cell in cells])
-            # Excel omits trailing empty cells, so blank optional last columns arrive short.
+            # 엑셀은 끝의 빈 칸을 생략하므로, 비어 있는 선택 컬럼이 짧게 들어온다.
             width = len(table[0]) if table else 0
             return [row + [None] * (width - len(row)) for row in table]
         finally:
@@ -70,14 +70,14 @@ def _table(filename: str, data: bytes, settings: Settings) -> list[list]:
 
 
 def sample_identity(path: Path) -> tuple[str, str]:
-    """IDs for a repository sample: data/corporate/{company_id}/{type}.csv -> company-type."""
+    """레포 샘플의 ID: data/corporate/{company_id}/{type}.csv -> company-type."""
     return path.parent.name, f"{path.parent.name}-{path.stem}"
 
 
 def parse_policies(
     filename: str, data: bytes, settings: Settings, company_id: str, document_id: str
 ) -> list[PolicyRow]:
-    """Read one corporate file. company_id/document_id come from the caller, never the file."""
+    """기업 파일 하나를 읽는다. company_id/document_id는 파일이 아니라 호출하는 쪽에서 받는다."""
     try:
         PolicyRow.model_validate(
             {"row_id": "x", "document_type": "corporate_values", "title": "x", "section": "x"}
@@ -138,7 +138,7 @@ async def corporate_document(rows: list[PolicyRow], embeddings: Embeddings) -> D
                     content=content,
                     metadata={
                         "row_id": row.row_id,
-                        # File order; attached-document retrieval returns chunks in this order.
+                        # 파일 순서. 첨부 문서 검색은 조각을 이 순서로 돌려준다.
                         "ordinal": len(chunks),
                         "source_urls": [str(row.source_url)] if row.source_url else [],
                         "published_at": row.published_at.isoformat() if row.published_at else None,
@@ -179,7 +179,7 @@ async def social_documents(data_dir: Path, embeddings: Embeddings) -> list[Docum
         if meta["document_id"] != item["document_id"] or not meta["retrieval_enabled"]:
             raise DocumentError("사회 문서 manifest와 metadata가 일치하지 않습니다.")
         chunks, section = [], meta["title"]
-        # Each heading retains its own provenance instead of mixing facts and project guidance.
+        # 사실과 프로젝트 안내가 섞이지 않게 제목마다 자기 출처를 유지한다.
         sections = re.split(r"(?m)^#{1,6} (.+)\n", body)
         for i, part in enumerate(sections):
             if i % 2:
@@ -187,8 +187,8 @@ async def social_documents(data_dir: Path, embeddings: Embeddings) -> list[Docum
                 continue
             if not part.strip():
                 continue
-            # Link targets are kept in source_urls (or point to other repo files); embedding
-            # them produced URL-only chunks that ranked near the top for unrelated queries.
+            # 링크 주소는 source_urls에 이미 있다(또는 레포 안 파일을 가리킨다). 이를 임베딩하면
+            # URL만 든 조각이 생겨 무관한 질문에도 상위에 올랐다.
             for content in await embeddings.split(MARKDOWN_LINK.sub(r"\1", part).strip()):
                 chunks.append(
                     Chunk(chunk_id=f"section:{len(chunks)}", section=section, content=content)

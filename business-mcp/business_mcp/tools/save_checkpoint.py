@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 
 
 def _failure(response: httpx.Response) -> CheckpointResult:
-    """Read the backend's error format; status is judged by HTTP code, then error.code."""
+    """BE의 오류 형식을 읽는다. 상태는 HTTP 코드로, 그다음 error.code로 판단한다."""
     code = trace_id = None
     retryable = response.status_code >= 500
     try:
@@ -43,13 +43,13 @@ async def save_checkpoint(
     result: dict | None = None,
     error: CheckpointError | None = None,
 ) -> CheckpointResult:
-    """Save the review stage on the backend. One attempt, no retry.
+    """검수 단계를 BE에 저장한다. 한 번만 보내고 재시도하지 않는다.
 
-    Retrying is left to the caller on purpose: the backend overwrites with whatever it
-    receives, so a late retry of an old stage would move the review backwards.
-    The internal key is read from settings only; it is never a Tool argument.
+    재시도는 일부러 호출하는 쪽에 맡긴다. BE는 받은 값으로 덮어쓰므로,
+    이전 단계를 늦게 재시도하면 검수가 뒤로 돌아간다.
+    내부 키는 설정에서만 읽으며, 절대 Tool 인자로 받지 않는다.
     """
-    UUID(original_text_id)  # the backend requires a UUID; fail before any network call
+    UUID(original_text_id)  # BE는 UUID를 요구한다. 네트워크 호출 전에 실패시킨다
     if result is not None and checkpoint_level != "COMPLETED":
         raise ValueError("result는 COMPLETED CP에만 포함할 수 있습니다.")
     if (error is not None) != (checkpoint_level == "FAILED"):

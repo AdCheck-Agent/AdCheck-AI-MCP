@@ -1,4 +1,4 @@
-"""Month-day dates however they are spelled, for the judge guard and the suggestion checks."""
+"""어떻게 표기했든 월·일 날짜를 찾는다. 판정 안전장치와 수정안 검사에 쓴다."""
 
 import re
 import unicodedata
@@ -13,8 +13,8 @@ def _month_day(month: int, day: int) -> str | None:
 
 
 def date_keys(text: str) -> set[str]:
-    """Month-day dates in any spelling (5월 18일, 5·18, 5.18, 518원) as one key such as '5-18'."""
-    # NFKC turns the Hangul middle dot (ㆍ) into a different character, so swap it first.
+    """어떤 표기(5월 18일, 5·18, 5.18, 518원)든 '5-18' 같은 하나의 키로 바꾼다."""
+    # NFKC가 한글 가운뎃점(ㆍ)을 다른 문자로 바꾸므로 먼저 바꿔 둔다.
     text = unicodedata.normalize("NFKC", text.replace("ㆍ", "·"))
     pairs = list(_MONTH_DAY.findall(text))
     pairs += [(run[:-2], run[-2:]) for run in _DIGITS.findall(text)]
@@ -23,10 +23,10 @@ def date_keys(text: str) -> set[str]:
 
 
 def number_date_keys(text: str) -> set[str]:
-    """Dates written only as a bare number (518원, 0518), with no 월·일 or separator.
+    """월·일이나 구분자 없이 숫자로만 쓴 날짜(518원, 0518).
 
-    A reader of "5월 18일" sees a date and judges it as one; "518원" reads as a price, so a model
-    can miss the date entirely.
+    "5월 18일"은 누구나 날짜로 읽고 판단하지만, "518원"은 가격으로 읽혀
+    모델이 날짜라는 것을 아예 놓칠 수 있다.
     """
     text = unicodedata.normalize("NFKC", text)
     keys = {_month_day(int(run[:-2]), int(run[-2:])) for run in _DIGITS.findall(text)}

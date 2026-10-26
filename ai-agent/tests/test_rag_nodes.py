@@ -55,7 +55,7 @@ async def test_live_graph_receives_evidence_and_tenant():
     assert result["corporate_value_result"].status == "empty"
     assert tools.companies == ["c1"]
     assert tools.document_ids == [None]
-    assert result["status"] == "needs_review"  # LLM is still a mock.
+    assert result["status"] == "needs_review"  # LLM은 아직 mock이다.
 
 
 async def test_attached_document_ids_reach_corporate_search():

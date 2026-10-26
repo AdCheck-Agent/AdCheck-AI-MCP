@@ -1,4 +1,4 @@
-# Runtime dependencies; versions verified on Python 3.12.
+# 실행 의존성. Python 3.12에서 버전을 확인했다.
 fastapi==0.159.1
 uvicorn==0.54.0
 pydantic==2.14.1

@@ -8,13 +8,13 @@ from app.core.config import Settings
 logger = logging.getLogger(__name__)
 
 OPENAI_CHAT_URL = "https://api.openai.com/v1/chat/completions"
-# Rate limit and server errors are usually gone a moment later; anything else is not retried.
+# 속도 제한과 서버 오류는 잠시 뒤 사라지는 경우가 많다. 그 밖의 오류는 재시도하지 않는다.
 RETRY_STATUS = {429, 500, 502, 503, 504}
 MAX_RETRY_WAIT = 5.0
 
 
 class OpenAIReviewModel:
-    """ReviewModel backed by the OpenAI chat completions API (JSON mode, temperature 0)."""
+    """OpenAI chat completions API를 쓰는 ReviewModel (JSON 모드, temperature 0)."""
 
     def __init__(
         self,
@@ -30,7 +30,7 @@ class OpenAIReviewModel:
         self._headers = {"Authorization": f"Bearer {api_key}"}
 
     def generate(self, system: str, user: str) -> str:
-        """One call, retried once after a short wait on a timeout, 429 or 5xx."""
+        """한 번 호출하고, 시간 초과·429·5xx면 잠깐 기다린 뒤 한 번 재시도한다."""
         body = {
             "model": self._model,
             "temperature": 0,
@@ -63,7 +63,7 @@ class OpenAIReviewModel:
         return self._client.post(OPENAI_CHAT_URL, headers=self._headers, json=body)
 
     def _wait(self, response: httpx.Response) -> float:
-        """Retry-After when the API gives one, capped so a review does not stall on it."""
+        """API가 Retry-After를 주면 따르되, 검수가 멈추지 않도록 상한을 둔다."""
         try:
             wait = float(response.headers.get("retry-after", self._retry_wait))
         except ValueError:
@@ -72,7 +72,7 @@ class OpenAIReviewModel:
 
 
 def create_openai_model(settings: Settings) -> OpenAIReviewModel | None:
-    """Return a model only when a key is configured; otherwise the mock reviewer stays active."""
+    """키가 설정된 경우에만 모델을 돌려준다. 없으면 mock 검수기가 그대로 동작한다."""
     key = settings.openai_api_key
     if key is None or not key.get_secret_value().strip():
         return None

@@ -38,7 +38,7 @@ async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     application.state.checkpoint_tools = business if settings.checkpoint_enabled else None
     application.state.review_graph = build_graph(business_tools=business, rag_tools=rag_tools)
 
-    # A missing setting does not stop the server, so say so loudly instead of reviewing quietly.
+    # 설정이 빠져도 서버는 멈추지 않으므로, 조용히 검수하지 않고 크게 경고한다.
     application.state.features = {
         "review_model": "openai" if model else "mock",
         "rag_retrieval": rag_tools is not None,

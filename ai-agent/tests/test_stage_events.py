@@ -42,14 +42,14 @@ async def test_every_stage_reports_and_skipped_ones_are_marked() -> None:
 
     assert {e.review_id for e in sink.events} == {"rev_001"}
     pairs = sink.pairs()
-    # Stages run in order; each runs then succeeds.
+    # 단계는 순서대로 실행되고, 각각 실행된 뒤 성공한다.
     assert pairs[:4] == [
         (S.BANNED_WORD_CHECK, T.RUNNING),
         (S.BANNED_WORD_CHECK, T.SUCCEEDED),
         (S.SOCIAL_HISTORICAL_SEARCH, T.RUNNING),
         (S.SOCIAL_HISTORICAL_SEARCH, T.SUCCEEDED),
     ]
-    # No company, no external search, not a revise: those stages are skipped, not silent.
+    # 기업 없음, 외부 검색 없음, revise 아님: 그 단계는 조용히 빠지지 않고 건너뜀으로 남는다.
     assert (S.COMPANY_VALUES_SEARCH, T.SKIPPED) in pairs
     assert (S.EXTERNAL_SEARCH, T.SKIPPED) in pairs
     assert (S.ALTERNATIVE_GENERATION, T.SKIPPED) in pairs

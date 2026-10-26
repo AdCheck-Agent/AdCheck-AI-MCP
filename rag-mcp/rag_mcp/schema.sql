@@ -36,8 +36,8 @@ CREATE TABLE IF NOT EXISTS adcheck_rag.chunks (
         REFERENCES adcheck_rag.documents(scope, document_id) ON DELETE CASCADE
 );
 
--- Databases created before the synthetic flag was removed.
+-- synthetic 플래그를 없애기 전에 만든 DB용.
 ALTER TABLE adcheck_rag.documents DROP COLUMN IF EXISTS synthetic;
 
--- Exact cosine search is sufficient for the initial corpus and keeps filtered top-k exact.
--- Add a measured ANN index only when corpus size and query timings justify it.
+-- 초기 데이터 규모에서는 정확한 코사인 검색으로 충분하고, 필터를 건 top-k도 정확하게 유지된다.
+-- 근사(ANN) 인덱스는 데이터 크기와 검색 시간을 재 보고 필요할 때만 추가한다.

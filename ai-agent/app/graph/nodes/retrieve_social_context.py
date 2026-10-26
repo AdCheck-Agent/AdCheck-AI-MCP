@@ -5,7 +5,7 @@ from app.graph.state import ReviewState
 
 
 def retrieve_social_context(state: ReviewState) -> dict:
-    # Offline graph keeps unit tests and local startup independent of the search server.
+    # 오프라인 그래프는 단위 테스트와 로컬 실행이 검색 서버 없이도 돌게 한다.
     return {"social_context_evidence": [], "social_context_result": None}
 
 

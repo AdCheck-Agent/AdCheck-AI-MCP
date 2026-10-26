@@ -1,7 +1,7 @@
-"""Stage progress events: which step of the review is running, done, skipped or failed.
+"""단계 진행 이벤트: 검수의 어느 단계가 실행 중·완료·건너뜀·실패인지 알린다.
 
-The agent only produces the events. Where they go (a backend API, a stream) is a sink that can
-be plugged in later; without one they are just logged, so a review never depends on it.
+Agent는 이벤트를 만들기만 한다. 이벤트를 어디로 보낼지(BE API, 스트림)는 나중에 끼울 수 있는
+sink가 정하며, sink가 없으면 로그로만 남으므로 검수가 sink에 의존하지 않는다.
 """
 
 import logging
@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 
 
 class Stage(StrEnum):
-    """Same names as the backend's AgentStage. COMPLETED is sent by the backend, not here."""
+    """BE의 AgentStage와 같은 이름. COMPLETED는 여기서가 아니라 BE가 보낸다."""
 
     BANNED_WORD_CHECK = "BANNED_WORD_CHECK"
     SOCIAL_HISTORICAL_SEARCH = "SOCIAL_HISTORICAL_SEARCH"
@@ -56,9 +56,9 @@ class LogSink:
 
 
 class StageTracker:
-    """Remembers each stage's latest status and hands every change to the sink.
+    """단계마다 최신 상태를 기억하고, 바뀔 때마다 sink에 넘긴다.
 
-    A sink that fails must never fail the review, so errors are logged and dropped.
+    sink가 실패해도 검수가 실패하면 안 되므로, 오류는 로그로 남기고 버린다.
     """
 
     def __init__(self, review_id: str | None, trace_id: str, sink: EventSink) -> None:
@@ -75,7 +75,7 @@ class StageTracker:
             logger.exception("stage event sink failed trace_id=%s", self.trace_id)
 
     def skip_unstarted(self, before: Stage) -> None:
-        """Mark every stage ahead of `before` that never ran as skipped."""
+        """`before` 앞에서 한 번도 실행되지 않은 단계를 모두 건너뜀으로 표시한다."""
         for stage in Stage:
             if stage == before:
                 return
@@ -83,7 +83,7 @@ class StageTracker:
                 self.emit(stage, StageStatus.SKIPPED)
 
     def fail_running(self) -> list[Stage]:
-        """Mark every running stage as failed and return them."""
+        """실행 중인 단계를 모두 실패로 표시하고 그 목록을 돌려준다."""
         running = [s for s, st in self.statuses.items() if st == StageStatus.RUNNING]
         for stage in running:
             self.emit(stage, StageStatus.FAILED)

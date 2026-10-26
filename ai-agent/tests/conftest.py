@@ -5,7 +5,7 @@ from app.llm.client import set_review_model
 
 @pytest.fixture(autouse=True)
 def offline_llm(monkeypatch: pytest.MonkeyPatch):
-    """Tests never call a real LLM, even if a key exists in the local .env."""
+    """로컬 .env에 키가 있어도 테스트는 실제 LLM을 호출하지 않는다."""
     monkeypatch.setenv("OPENAI_API_KEY", "")
     get_settings.cache_clear()
     set_review_model(None)

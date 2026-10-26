@@ -18,7 +18,7 @@ from app.schemas.review import Category, Evidence, Finding, Severity
 
 logger = logging.getLogger(__name__)
 
-MAX_ATTEMPTS = 2  # first call + one retry on malformed output
+MAX_ATTEMPTS = 2  # 첫 호출 + 형식 오류 시 1번 재시도
 
 SYSTEM_PROMPT = """\
 당신은 SNS 광고 문구의 사회·역사적 논란 가능성과 기업 가치와의 충돌을 \
@@ -130,19 +130,19 @@ class CatalogItem:
     evidence: Evidence
 
 
-# Ordinary ad wording. A trigger made only of these would make every rewrite "still risky".
+# 평범한 광고 문구. 이것만으로 된 문제 단어는 모든 수정안을 "여전히 위험"하게 만든다.
 GENERIC_TERMS = frozenset(
     "할인 특가 혜택 이벤트 기념 특별 특별한 오늘만 오늘 한정 "
     "신제품 출시 세일 프로모션 증정 무료".split()
 )
 
 
-# "탁!" and "탁" are the same trigger; punctuation would hide it from the word checks.
+# "탁!"과 "탁"은 같은 문제 단어다. 문장부호가 있으면 단어 검사에서 놓친다.
 TERM_EDGE = " \t\n.,!?;:·'\"()[]{}~…"
 
 
 def trigger_terms(terms: list[str], quote: str) -> list[str]:
-    """Terms that are really in the quote and not just ordinary ad wording."""
+    """인용에 실제로 있고 평범한 광고 문구가 아닌 단어."""
     text = normalize(quote)
     kept = []
     for term in (t.strip(TERM_EDGE) for t in terms):
@@ -158,8 +158,8 @@ def build_catalog(state: ReviewState) -> list[CatalogItem]:
         ("C", "corporate", state["corporate_value_evidence"]),
         ("E", "external", state["external_evidence"]),
     )
-    # The source travels with each piece of evidence, so a reader can tell the company's own
-    # rule from a social criterion once they are mixed in one finding.
+    # 근거마다 출처를 붙여 두면, 한 지적에 섞여 있어도 기업 자체 원칙과
+    # 사회 기준을 구분할 수 있다.
     return [
         CatalogItem(f"{prefix}{index}", to_evidence(evidence).model_copy(update={"source": kind}))
         for prefix, kind, items in sources
@@ -168,7 +168,7 @@ def build_catalog(state: ReviewState) -> list[CatalogItem]:
 
 
 def context_block(state: ReviewState) -> str:
-    """Posting date and campaign purpose, when the backend sent them."""
+    """BE가 보냈다면 게시 예정일과 캠페인 목적."""
     context = state["context"]
     items = {
         "campaign_purpose": context.campaign_purpose,
@@ -213,7 +213,7 @@ def parse_judgment(raw: str) -> Judgment:
 
 
 def call_model(model: ReviewModel, system: str, user: str) -> Judgment | None:
-    """Return a parsed judgment, retrying once on malformed output. None means failure."""
+    """판정 결과를 파싱해 돌려준다. 형식이 깨지면 한 번 재시도한다. None은 실패를 뜻한다."""
     prompt = user
     for attempt in range(1, MAX_ATTEMPTS + 1):
         try:
@@ -230,7 +230,7 @@ def call_model(model: ReviewModel, system: str, user: str) -> Judgment | None:
 
 
 def quotes_not_in_ad(judgment: Judgment, state: ReviewState) -> list[str]:
-    """Quotes of a risky judgment when none of them is in the ad, e.g. 탁! lifted from a case."""
+    """위험 판정인데 인용이 하나도 광고에 없는 경우의 인용. 예: 사례에서 가져온 탁!"""
     if judgment.risk != "yes" or not judgment.findings:
         return []
     source = normalize(state["source_text"])
@@ -254,7 +254,7 @@ def needs_review(summary: str) -> dict:
 
 
 def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) -> dict:
-    """Apply code-level guards so the model cannot invent evidence or quotes."""
+    """코드 안전장치를 적용해 모델이 근거나 인용을 지어내지 못하게 한다."""
     by_id = {item.id: item.evidence for item in catalog}
     if not by_id:
         return needs_review(_no_evidence_summary(state))
@@ -267,8 +267,8 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
         if normalize(judged.quote) not in source:
             continue
         evidence = [by_id[i] for i in dict.fromkeys(judged.evidence_ids) if i in by_id]
-        # A reported case only counts when the ad has its combination (date + wording); a shared
-        # word such as 탱크톱 or a bare date is not enough.
+        # 신고된 사례는 광고에 그 결합(날짜 + 문구)이 있을 때만 인정한다. 탱크톱처럼
+        # 단어 하나만 겹치거나 날짜만 있으면 부족하다.
         applicable = [e for e in evidence if case_applies(e.rule_id, state["source_text"])]
         if evidence and not applicable:
             gated += 1
@@ -290,14 +290,14 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
 
     sufficient, risk, summary = judgment.evidence_sufficient, judgment.risk, judgment.summary
     if gated and gated == len(judgment.findings) and not findings and risk != "no":
-        # Every finding rested on a case whose conditions the ad does not meet.
+        # 모든 지적이 광고가 조건을 충족하지 못하는 사례에 기대고 있었다.
         sufficient, risk, summary = True, "no", GATED_SUMMARY
     if risk == "yes" and not any(f.evidence for f in findings):
         sufficient, risk = False, "uncertain"
     if risk == "no":
         findings = []
         if state["rule_hits"]:
-            # A rule hit never passes silently: hold it for a human even if the model sees no risk.
+            # 금기어는 조용히 통과하지 않는다. 모델이 위험 없다고 봐도 사람 검토로 보류한다.
             return {
                 "evidence_sufficient": sufficient,
                 "risk": "uncertain",
@@ -306,8 +306,8 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
             }
         hidden = _number_dates_in_evidence(state, by_id.values())
         if hidden:
-            # "518원" reads as a price, so the model can call it safe while the evidence is about
-            # 5월 18일. A date disguised as a number never passes silently.
+            # "518원"은 가격으로 읽혀서, 근거가 5월 18일을 다루는데도 모델이
+            # 안전하다고 할 수 있다. 숫자로 숨긴 날짜는 조용히 통과하지 않는다.
             return {
                 "evidence_sufficient": sufficient,
                 "risk": "uncertain",
@@ -315,8 +315,8 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
                 "summary": _hidden_date_summary(hidden),
             }
     if risk == "yes":
-        # The model may skip a banned expression it was hinted about; applying its suggestions
-        # would then leave that expression in the ad, so it is always listed.
+        # 모델이 힌트로 받은 금기어를 빠뜨릴 수 있다. 그러면 수정안을 적용해도
+        # 그 표현이 광고에 남으므로 항상 지적 목록에 넣는다.
         findings += _uncovered_banned_findings(state, findings)
     if not sufficient or risk == "uncertain":
         findings = [f.model_copy(update={"needs_human_review": True}) for f in findings]
@@ -330,7 +330,7 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
 
 
 def _uncovered_banned_findings(state: ReviewState, findings: list[Finding]) -> list[Finding]:
-    """Keep uncovered local signals for semantic/human review; BE owns the dictionary."""
+    """빠진 금기어 신호를 의미 검토·사람 검토용으로 남긴다. 금기어 사전은 BE가 관리한다."""
     quotes = [normalize(f.quote) for f in findings]
     added: list[Finding] = []
     for hit in state["rule_hits"]:
@@ -360,7 +360,7 @@ def _no_evidence_summary(state: ReviewState) -> str:
 
 
 def _number_dates_in_evidence(state: ReviewState, evidence) -> list[str]:
-    """Dates the ad writes as a bare number that the evidence also mentions, e.g. 518 / 5월 18일."""
+    """광고가 숫자로만 쓴 날짜 중 근거에도 나오는 날짜. 예: 518 / 5월 18일."""
     in_evidence = set().union(*(date_keys(e.snippet) for e in evidence)) if evidence else set()
     return sorted(number_date_keys(state["source_text"]) & in_evidence)
 
@@ -377,16 +377,16 @@ def _held_hit_summary(state: ReviewState, model_summary: str) -> str:
 
 MAX_QUERY_CHARS = 400
 
-# Personal data must not leave through a model-written search query.
+# 모델이 쓴 검색어로 개인정보가 밖에 나가면 안 된다.
 _PRIVATE = re.compile(
-    r"https?://\S+|www\.\S+"  # links
-    r"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"  # e-mail
-    r"|\+?\d[\d\-\s().]{7,}\d"  # phone-like digit runs
+    r"https?://\S+|www\.\S+"  # 링크
+    r"|[\w.+-]+@[\w-]+(?:\.[\w-]+)+"  # 이메일
+    r"|\+?\d[\d\-\s().]{7,}\d"  # 전화번호 같은 숫자열
 )
 
 
 def clean_query(query: str, source_text: str) -> str | None:
-    """Strip links, e-mails and phone numbers; refuse to send the whole ad text out."""
+    """링크, 이메일, 전화번호를 지운다. 광고 문구 전체를 밖으로 보내지 않는다."""
     query = " ".join(_PRIVATE.sub(" ", query).split())
     if not 0 < len(query) <= MAX_QUERY_CHARS:
         return None
@@ -397,14 +397,14 @@ def clean_query(query: str, source_text: str) -> str | None:
 
 
 def external_query(judgment: Judgment, state: ReviewState, result: dict) -> str | None:
-    """A search query is allowed once, and only while the evidence is still insufficient."""
+    """검색어는 한 번만, 근거가 아직 부족할 때만 허용한다."""
     if result.get("evidence_sufficient") or state["external_search_attempted"]:
         return None
     return clean_query(judgment.external_search_query or "", state["source_text"])
 
 
 def oversized_sources(state: ReviewState) -> list[str]:
-    """Names of searches whose attached documents were too large to load in full."""
+    """첨부 문서가 너무 커서 전부 불러오지 못한 검색의 이름."""
     sources = (
         ("사회·역사", state["social_context_result"]),
         ("기업 가치", state["corporate_value_result"]),
@@ -413,7 +413,7 @@ def oversized_sources(state: ReviewState) -> list[str]:
 
 
 def note_oversized(result: dict, state: ReviewState) -> dict:
-    """Say why evidence is incomplete, and never let incomplete evidence end in a pass."""
+    """근거가 불완전한 이유를 밝히고, 불완전한 근거로는 절대 pass를 내지 않는다."""
     names = oversized_sources(state)
     if not names:
         return result

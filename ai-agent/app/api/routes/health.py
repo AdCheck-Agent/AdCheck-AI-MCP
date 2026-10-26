@@ -5,6 +5,6 @@ router = APIRouter()
 
 @router.get("/health")
 async def health(request: Request) -> dict:
-    """Always 200 while the server runs; `features` shows what is switched off by settings."""
+    """서버가 떠 있으면 항상 200. `features`는 설정 때문에 꺼진 기능을 보여 준다."""
     features = getattr(request.app.state, "features", {})
     return {"status": "ok", "service": "adcheck-ai-agent", "features": features}

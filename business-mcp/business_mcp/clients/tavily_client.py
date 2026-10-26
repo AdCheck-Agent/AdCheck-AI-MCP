@@ -31,12 +31,12 @@ def parse_published_at(value: str | None) -> datetime | None:
             parsed = parsedate_to_datetime(value)
         except (ValueError, TypeError, OverflowError):
             return None
-    # Do not invent a timezone when the source supplies only a date/local time.
+    # 출처가 날짜나 현지 시각만 주면 시간대를 지어내지 않는다.
     return parsed if parsed.tzinfo is not None else None
 
 
 class TavilyClient:
-    """One Search HTTP call; no retries, redirects, Extract or generated answer."""
+    """Search HTTP 호출 한 번. 재시도, 리다이렉트, Extract, 생성 답변은 쓰지 않는다."""
 
     def __init__(self, http: httpx.AsyncClient, settings: Settings) -> None:
         self.http = http
@@ -49,7 +49,7 @@ class TavilyClient:
                 status="unavailable", message="TAVILY_API_KEY가 설정되지 않았습니다."
             )
         try:
-            # Unlike an httpx phase timeout, this bounds the complete request duration.
+            # httpx의 단계별 시간 제한과 달리, 요청 전체 시간을 제한한다.
             async with asyncio.timeout(self.settings.tavily_timeout_seconds):
                 response = await self.http.post(
                     "https://api.tavily.com/search",
@@ -71,7 +71,7 @@ class TavilyClient:
         except (TimeoutError, httpx.TimeoutException):
             return SearchResult(status="timeout", message="외부검색 제한 시간을 초과했습니다.")
         except (httpx.HTTPError, ValidationError, ValueError):
-            # Never expose provider response bodies, request headers or credentials.
+            # 제공사 응답 본문, 요청 헤더, 인증 정보는 절대 노출하지 않는다.
             return SearchResult(
                 status="error", message="외부검색 호출 또는 응답 처리에 실패했습니다."
             )

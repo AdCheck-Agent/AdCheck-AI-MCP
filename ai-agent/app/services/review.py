@@ -33,7 +33,7 @@ async def run_review(
     timeout_seconds: float,
     checkpoint_tools: CheckpointTools | None = None,
 ) -> ReviewResponse | None:
-    """Execute after HTTP 202 and deliver the validated result in the final CP."""
+    """HTTP 202 이후 실행하고, 검증된 결과를 마지막 CP로 보낸다."""
     trace_id = state["trace_id"]
     review_id = state.get("review_id")
     checkpoint = (
@@ -65,7 +65,7 @@ async def run_review(
         failed = tracker.fail_running()
         logger.exception("review failed trace_id=%s code=review_failed", trace_id)
         if checkpoint:
-            # Only the exception type: its message may quote the ad or a backend response.
+            # 예외 종류만 남긴다. 메시지에는 광고 문구나 BE 응답이 들어 있을 수 있다.
             message = ERROR_MESSAGE.format(name=type(exc).__name__)
             checkpoint.fail("REVIEW_ERROR", message, failed[-1] if failed else None)
         return None

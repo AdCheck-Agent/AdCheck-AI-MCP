@@ -2,7 +2,7 @@ from typing import Protocol
 
 
 class ReviewModel(Protocol):
-    """Provider-agnostic text model. Implementations own timeouts and raise on failure."""
+    """특정 제공사에 묶이지 않는 텍스트 모델. 구현체가 시간 제한을 관리하고 실패하면 예외를 낸다."""
 
     def generate(self, system: str, user: str) -> str: ...
 

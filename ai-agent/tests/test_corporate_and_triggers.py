@@ -94,7 +94,7 @@ def test_one_syllable_trigger_is_avoided_and_caught() -> None:
     found = finding("책상에 탁 치면 억 소리 나는 할인", ["탁", "억"])
     assert {"탁", "억"} <= risk_terms(found)
     assert kept_terms(found, "특별 할인! 탁 치면 놀라운 혜택") == {"탁"}
-    # A syllable inside another word is not the trigger.
+    # 다른 단어 안의 음절은 문제 단어가 아니다.
     assert kept_terms(found, "탁월한 품질의 책상 할인") == set()
 
 
@@ -104,7 +104,7 @@ def test_named_multi_syllable_trigger_is_caught_inside_a_word() -> None:
 
 
 def test_product_word_shared_with_the_case_is_not_avoided() -> None:
-    # 책상에 is in both the ad and the case, but the judge named only 탁 and 억.
+    # 책상에는 광고와 사례 모두에 있지만, 판정은 탁과 억만 지목했다.
     found = finding("책상에 탁 치면 억 소리 나는 할인", ["탁", "억"])
     assert risk_terms(found) == {"탁", "억"}
     assert kept_terms(found, "튼튼한 책상에 어울리는 특별 할인") == set()
@@ -225,6 +225,6 @@ def test_number_written_date_cannot_pass_when_evidence_has_the_date() -> None:
 def test_written_out_date_and_unrelated_numbers_are_left_to_the_judge() -> None:
     from app.llm.dates import number_date_keys
 
-    assert number_date_keys("5월 18일 새 텀블러") == set()  # a written date is judged as a date
+    assert number_date_keys("5월 18일 새 텀블러") == set()  # 글자로 쓴 날짜는 날짜로 판정한다
     assert number_date_keys("518원 할인, 0518 특가") == {"5-18"}
     assert number_date_keys("1,000원 99% 할인 2026년") == set()

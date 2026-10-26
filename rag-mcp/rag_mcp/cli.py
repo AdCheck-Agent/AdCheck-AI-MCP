@@ -17,7 +17,7 @@ from rag_mcp.retrieval.vector_store import PgVectorStore
 
 
 async def check_embedding(settings: Settings, embeddings: LocalEmbeddings) -> None:
-    """Load the configured model once and report what it produces. No database needed."""
+    """설정된 모델을 한 번 불러와 결과를 보고한다. DB는 필요 없다."""
     texts = [
         "5월 18일 기념 탱크데이 특가",
         "5·18 기념일에 맞춘 탱크데이 할인",

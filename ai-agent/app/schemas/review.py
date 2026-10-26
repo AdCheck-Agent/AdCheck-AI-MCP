@@ -24,10 +24,10 @@ class ReviewContext(InputModel):
     channel: Literal["sns"]
     campaign_name: str | None = Field(default=None, max_length=100)
     campaign_purpose: str | None = Field(default=None, max_length=200)
-    # When the ad will be posted; a date in the copy is judged against it.
+    # 광고 게시 예정일. 문구 속 날짜를 이 날짜와 비교해 판단한다.
     scheduled_at: AwareDatetime | None = None
     company_id: str | None = Field(default=None, min_length=1, max_length=100)
-    # Files attached to this review; RAG returns every chunk of these documents.
+    # 이번 검수에 첨부한 파일. RAG가 이 문서들의 조각을 모두 돌려준다.
     document_ids: (
         list[Annotated[str, Field(min_length=1, max_length=150, pattern=r"^[A-Za-z0-9_.:-]+$")]]
         | None
@@ -37,7 +37,7 @@ class ReviewContext(InputModel):
 class ReviewRequest(InputModel):
     text: str = Field(min_length=1, max_length=2000)
     context: ReviewContext
-    # Chosen by the backend; echoed on every stage event so it can tell reviews apart.
+    # BE가 정한다. 모든 단계 이벤트에 그대로 실어 BE가 검수를 구분하게 한다.
     review_id: str | None = Field(
         default=None, min_length=1, max_length=100, pattern=r"^[A-Za-z0-9_.:-]+$"
     )
@@ -57,7 +57,7 @@ class Evidence(BaseModel):
     snippet: str = Field(min_length=1)
     rule_id: str | None = None
     version: str | None = None
-    # Where it was retrieved: social criteria, the company's own documents, or a web search.
+    # 근거를 가져온 곳: 사회 기준, 기업 자체 문서, 웹 검색.
     source: EvidenceSource | None = None
 
 
@@ -65,7 +65,7 @@ DetectionType = Literal["BANNED_WORD", "SEMANTIC"]
 
 
 class Finding(BaseModel):
-    # Agent findings are semantic; the backend owns dictionary-based banned-word detection.
+    # Agent의 지적은 의미 기반이다. 사전 기반 금기어 탐지는 BE가 맡는다.
     detection_type: DetectionType = "SEMANTIC"
     category: Category
     severity: Severity
@@ -76,7 +76,7 @@ class Finding(BaseModel):
     evidence: list[Evidence] = Field(default_factory=list)
     suggestion: str | None = None
     needs_human_review: bool
-    # Words in the quote the judge named as the trigger; internal to the suggestion checks.
+    # 판정이 문제 단어로 지목한 인용 속 단어. 수정안 검사에만 쓰는 내부 값이다.
     trigger_terms: list[str] = Field(default_factory=list, exclude=True)
 
 
@@ -85,6 +85,6 @@ class ReviewResponse(BaseModel):
     summary: str = Field(min_length=1)
     findings: list[Finding]
     related_criteria: list[str] = Field(default_factory=list)
-    # What could not be checked (no company, search failed, ...) so a person knows the gap.
+    # 확인하지 못한 것(기업 없음, 검색 실패 등). 사람이 빈틈을 알 수 있게 한다.
     missing_information: list[str] = Field(default_factory=list)
     trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")

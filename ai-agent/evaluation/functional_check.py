@@ -1,12 +1,12 @@
-"""Functional test for the STEP 04 acceptance criteria (TC-01 ~ TC-08), through the real API.
+"""STEP 04 인수조건(TC-01 ~ TC-08) 기능 테스트. 실제 API를 거쳐 실행한다.
 
     PYTHONPATH=ai-agent python ai-agent/evaluation/functional_check.py --csv functional.csv
     (실제 검색 서버까지 쓰려면 --rag-url http://localhost:8001 을 추가)
 
-TC-01/02/05/06/07 use the real model (needs OPENAI_API_KEY). TC-03/04/08 are failure cases, so
-they inject the failure (no evidence, slow model, crashing node, failing search, bad suggestion).
---offline replaces the real model with a tiny rule-based stand-in to check this script itself;
-its output is NOT a test result.
+TC-01/02/05/06/07은 실제 모델을 쓴다(OPENAI_API_KEY 필요). TC-03/04/08은 실패 케이스라
+실패를 직접 주입한다(근거 없음, 느린 모델, 예외 나는 노드, 검색 실패, 잘못된 수정안).
+--offline은 실제 모델 대신 작은 규칙 기반 대역으로 이 스크립트 자체를 점검한다.
+이때 출력은 테스트 결과가 아니다.
 """
 
 import argparse
@@ -48,16 +48,16 @@ GENERAL = RetrievalEvidence(
 )
 
 
-REAL_RAG = None  # set by --rag-url: use the running RAG-MCP instead of fixtures
+REAL_RAG = None  # --rag-url로 설정: fixture 대신 실행 중인 RAG-MCP를 쓴다
 
 
 def rag(evidence):
-    """Real search when --rag-url is given, otherwise a fixture that returns `evidence`."""
+    """--rag-url을 주면 실제 검색, 아니면 `evidence`를 돌려주는 fixture."""
     return REAL_RAG if REAL_RAG is not None else FakeRag(evidence)
 
 
 class FakeRag:
-    """Stands in for the RAG-MCP server so each case controls what evidence comes back."""
+    """RAG-MCP 서버를 대신해, 케이스마다 돌려줄 근거를 정할 수 있게 한다."""
 
     def __init__(self, evidence=None, fail: bool = False) -> None:
         self.evidence, self.fail = evidence or [], fail
@@ -73,7 +73,7 @@ class FakeRag:
 
 
 class OfflineModel:
-    """Rule-based stand-in used only by --offline to exercise this script."""
+    """--offline에서만 이 스크립트를 돌려 보려고 쓰는 규칙 기반 대역."""
 
     def generate(self, system: str, user: str) -> str:
         ad = re.search(r"<ad_text>\n(.*?)\n</ad_text>", user, re.S).group(1)

@@ -32,7 +32,7 @@ def test_only_the_selected_occurrence_changes():
 def test_alternative_validation_removes_the_selected_occurrence_from_context():
     source = "봄 위험 문구 특가, 위험 문구 상품"
     item = locate_findings(source, [finding()])[1]
-    # Removing the first occurrence would incorrectly create "봄 특가" in the rest.
+    # 첫 번째 위치를 지우면 나머지에 "봄 특가"가 잘못 생긴다.
     assert _repeats_rest(source, item, "봄 특가") == set()
     assert _repeats_rest(source, item, "봄 위험 문구 특가") == {"봄 위험 문구 특가"}
 

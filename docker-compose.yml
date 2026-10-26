@@ -34,7 +34,7 @@ services:
     ports:
       - "${RAG_MCP_PORT:-8001}:8001"
     environment:
-      # Unset: the bundled pgvector. Set RAG_COMPOSE_DATABASE_URL to use an external DB (e.g. Supabase).
+      # 비워 두면 내장 pgvector를 쓴다. 외부 DB(예: Supabase)를 쓰려면 RAG_COMPOSE_DATABASE_URL을 설정한다.
       RAG_DATABASE_URL: ${RAG_COMPOSE_DATABASE_URL:-postgresql://${RAG_DB_USER:-adcheck}:${RAG_DB_PASSWORD:-adcheck}@pgvector:5432/${RAG_DB_NAME:-adcheck_rag}}
       RAG_MODEL_CACHE: /models
       RAG_EMBEDDING_MODEL: ${RAG_EMBEDDING_MODEL:-BAAI/bge-m3}

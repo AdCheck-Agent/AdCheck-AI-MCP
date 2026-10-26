@@ -16,7 +16,7 @@ def ok(content: str = '{"ok": true}') -> httpx.Response:
 
 
 def sequence(*responses):
-    """Handler returning the responses in order (an exception is raised); records calls."""
+    """응답을 순서대로 돌려주는 핸들러(예외면 발생시킴). 호출을 기록한다."""
     calls = []
 
     def handler(request: httpx.Request) -> httpx.Response:

@@ -54,13 +54,12 @@ def tracked(
     skip_when: Callable[[ReviewState], bool] | None = None,
     keep_running: Callable[[ReviewState, dict], bool] | None = None,
 ) -> Callable[[ReviewState], Any]:
-    """Wrap a node so its progress is reported; behaves exactly like the node otherwise.
+    """노드를 감싸 진행 상황을 보고한다. 그 밖에는 원래 노드와 똑같이 동작한다.
 
-    The wrapper is sync for a sync node and async for an async node, so the graph keeps
-    running both ways it already did.
+    동기 노드는 동기로, 비동기 노드는 비동기로 감싸므로 그래프는 기존 방식 그대로 실행된다.
 
-    skip_when: the node has nothing to do (reported as SKIPPED, the node still runs).
-    keep_running: the stage is not finished yet after this run (e.g. it will loop back).
+    skip_when: 노드가 할 일이 없음 (SKIPPED로 보고하며, 노드는 그대로 실행된다).
+    keep_running: 이번 실행 뒤에도 단계가 끝나지 않음 (예: 다시 돌아올 예정).
     """
 
     def before(state: ReviewState) -> tuple[StageTracker | None, bool]:
@@ -138,7 +137,7 @@ def build_graph(
         tracked(
             Stage.FINAL_ASSESSMENT,
             review_llm,
-            # An evidence gap sends the run through external search and back to this node.
+            # 근거가 부족하면 외부 검색을 거쳐 이 노드로 다시 돌아온다.
             keep_running=lambda state, update: (
                 route_result({**state, **update}) == "external_search"
             ),
@@ -171,7 +170,7 @@ def build_graph(
         },
     )
 
-    # Search outcome is input to the final judgment, never a verdict by itself.
+    # 검색 결과는 최종 판정의 입력일 뿐, 그 자체로 판정이 되지 않는다.
     graph.add_edge("external_search", "review_llm")
 
     for node in ("generate_alternative", "mark_pass", "mark_needs_review"):
