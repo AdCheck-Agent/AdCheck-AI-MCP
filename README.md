@@ -87,6 +87,9 @@ cp -n .env.example .env
 | `TAVILY_API_KEY` | 외부검색이 `unavailable` |
 | `CHECKPOINT_ENABLED`, `ADCHECK_BE_BASE_URL`, `INTERNAL_API_KEY` | BE에 진행·결과를 보고하지 않음 |
 
+이 값이 빠져도 서버는 뜹니다. 대신 시작 로그에 경고가 남고, Agent `GET /health`의 `features`에서
+`review_model`(`openai`|`mock`), `rag_retrieval`, `checkpoint`가 켜져 있는지 확인할 수 있습니다.
+
 전체 변수는 [guide.md](guide.md) 9장을 참고하세요.
 
 ## 실행

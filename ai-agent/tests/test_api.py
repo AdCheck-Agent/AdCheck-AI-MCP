@@ -3,6 +3,7 @@ import json
 
 import httpx
 import pytest
+from app.core.config import get_settings
 from app.graph.graph import build_graph
 from app.graph.state import initial_state
 from app.main import app
@@ -11,11 +12,32 @@ from app.services.review import run_review
 from fastapi.testclient import TestClient
 
 
-def test_health() -> None:
+def test_health_reports_what_settings_switched_off(monkeypatch, caplog) -> None:
+    monkeypatch.setenv("RAG_RETRIEVAL_ENABLED", "false")
+    monkeypatch.setenv("CHECKPOINT_ENABLED", "false")
+    get_settings.cache_clear()
     with TestClient(app) as client:
         response = client.get("/health")
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "service": "adcheck-ai-agent"}
+    assert response.json() == {
+        "status": "ok",
+        "service": "adcheck-ai-agent",
+        "features": {"review_model": "mock", "rag_retrieval": False, "checkpoint": False},
+    }
+    assert "OPENAI_API_KEY is not set" in caplog.text
+    assert "RAG_RETRIEVAL_ENABLED is false" in caplog.text
+    assert "CHECKPOINT_ENABLED is false" in caplog.text
+
+
+def test_health_with_everything_on(monkeypatch, caplog) -> None:
+    monkeypatch.setenv("OPENAI_API_KEY", "sk-test")
+    monkeypatch.setenv("RAG_RETRIEVAL_ENABLED", "true")
+    monkeypatch.setenv("CHECKPOINT_ENABLED", "true")
+    get_settings.cache_clear()
+    with TestClient(app) as client:
+        features = client.get("/health").json()["features"]
+    assert features == {"review_model": "openai", "rag_retrieval": True, "checkpoint": True}
+    assert "is not set" not in caplog.text and "is false" not in caplog.text
 
 
 @pytest.mark.parametrize("text", ["", " \n\t ", "가" * 2001])
