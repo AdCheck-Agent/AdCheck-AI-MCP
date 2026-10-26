@@ -155,7 +155,7 @@ def test_graph_end_to_end_returns_suggestion(monkeypatch: pytest.MonkeyPatch) ->
     assert response.findings[0].suggestion == "봄맞이 감사 할인"
     # TEXT also holds a banned expression the model did not flag: it is listed and gets a fix too.
     banned = response.findings[1]
-    assert (banned.detection_type, banned.quote) == ("BANNED_WORD", "안 사면 평생 후회")
+    assert (banned.detection_type, banned.quote) == ("SEMANTIC", "안 사면 평생 후회")
     assert banned.suggestion == "지금 만나보세요"
 
 

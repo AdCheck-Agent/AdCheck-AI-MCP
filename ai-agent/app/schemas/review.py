@@ -65,11 +65,13 @@ DetectionType = Literal["BANNED_WORD", "SEMANTIC"]
 
 
 class Finding(BaseModel):
-    # BANNED_WORD: the quote matches a banned expression; SEMANTIC: the model judged the meaning.
+    # Agent findings are semantic; the backend owns dictionary-based banned-word detection.
     detection_type: DetectionType = "SEMANTIC"
     category: Category
     severity: Severity
     quote: str = Field(min_length=1)
+    start_offset: int | None = Field(default=None, ge=0)
+    end_offset: int | None = Field(default=None, ge=0)
     reason: str = Field(min_length=1)
     evidence: list[Evidence] = Field(default_factory=list)
     suggestion: str | None = None
