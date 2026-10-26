@@ -4,6 +4,7 @@ from app.graph.nodes.rule_filter import normalize
 from app.graph.state import ReviewState
 from app.llm.evidence import to_evidence
 from app.llm.judge import oversized_sources
+from app.llm.spans import locate_findings
 from app.schemas.review import Evidence, Finding, ReviewResponse
 
 logger = logging.getLogger(__name__)
@@ -70,7 +71,11 @@ def validate_result(state: ReviewState) -> dict:
         if reason:
             reasons.append(reason)
         else:
-            kept.append(finding)
+            located = locate_findings(state["source_text"], [finding])
+            if located:
+                kept.extend(located)
+            else:
+                reasons.append("원문 위치가 일치하지 않는 지적")
 
     status = state["status"]
     if status == "revise":
@@ -97,7 +102,7 @@ def validate_result(state: ReviewState) -> dict:
     if state.get("related_criteria") and (not kept or status == "pass"):
         # Criteria explain findings; with no finding left there is nothing to explain.
         update["related_criteria"] = []
-    if len(kept) != len(state["findings"]):
+    if kept != state["findings"]:
         update["findings"] = kept
 
     blocking = [r for r in reasons if r != "원문에 없는 인용" and r != "검색 결과에 없는 근거"]

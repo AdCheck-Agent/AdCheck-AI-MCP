@@ -176,10 +176,12 @@ def test_suggestion_repeating_the_rest_of_the_ad_is_retried() -> None:
     from app.llm.alternative import _repeats_rest
 
     source = "안 사면 평생 후회, 오늘만 특가"
-    assert _repeats_rest(source, "안 사면 평생 후회", "놓치지 마세요, 오늘만 특가") == {
+    finding = Finding(category="social_issue", severity="medium", quote="안 사면 평생 후회",
+                      reason="검토 필요", needs_human_review=False)
+    assert _repeats_rest(source, finding, "놓치지 마세요, 오늘만 특가") == {
         "오늘만 특가"
     }
-    assert _repeats_rest(source, "안 사면 평생 후회", "놓치지 마세요") == set()
+    assert _repeats_rest(source, finding, "놓치지 마세요") == set()
 
 
 def test_rewrite_hint_names_the_words_the_recheck_objected_to() -> None:

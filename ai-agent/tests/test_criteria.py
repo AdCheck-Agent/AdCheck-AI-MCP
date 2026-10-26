@@ -63,4 +63,6 @@ def test_validator_clears_criteria_on_pass_and_when_no_findings_remain() -> None
 
 
 def test_validator_keeps_criteria_for_valid_revise() -> None:
-    assert validate_result(make("revise", [finding()], related_criteria=["x"])) == {}
+    update = validate_result(make("revise", [finding()], related_criteria=["x"]))
+    assert "related_criteria" not in update
+    assert "status" not in update

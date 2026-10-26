@@ -4,7 +4,8 @@ SNS 광고 문구의 사회·역사적 논란 가능성과 기업 가치와의 �
 Python 3.12, FastAPI, Pydantic v2, LangGraph, httpx, MCP SDK를 사용하며, venv + pip로 환경을 관리합니다.
 Spring Boot Backend(AdCheck-BE)와 Frontend(AdCheck-FE)는 별도 저장소입니다.
 
-**금기어 탐지, RAG 검색, LLM 판정, 수정안 생성, 출력 검증, 외부검색, BE 체크포인트 보고가 모두 실제로 동작합니다.**
+**표현 신호 탐지, RAG 검색, LLM 의미 판정, 수정안 생성, 출력 검증, 외부검색, BE 체크포인트 보고가 동작합니다.**
+금기어 사전 포함 검색은 BE가 담당하며 Agent의 표현 목록은 의미 검토의 참고 신호입니다. Agent 지적은 모두 `SEMANTIC`으로 전달합니다.
 `OPENAI_API_KEY`를 비우면 모델을 호출하지 않고 `[MOCK]` 요약과 `needs_review`를 반환합니다.
 
 ## 서비스 구성
@@ -31,6 +32,7 @@ FE ◀─SSE─ BE
 - [RAG 가이드](rag-mcp/README.md): 업로드 형식(7개 컬럼), 검색 계약, Supabase 연결
 - [Business 가이드](business-mcp/README.md): 외부검색·체크포인트 Tool
 - [BE ↔ AI API 정리](docs/2026-10-23-backend-api-handoff.md)
+- [금기어·의미 검토와 원문 위치 계약](docs/2026-10-26-review-spans.md)
 - [검색 품질 평가](docs/2026-10-22-rag-retrieval-eval.md), [판정 평가셋](ai-agent/evaluation/README.md)
 
 ## 디렉터리 구조

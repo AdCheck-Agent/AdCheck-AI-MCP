@@ -12,6 +12,7 @@ from app.llm.client import ReviewModel
 from app.llm.criteria import criteria_for_prompt, criteria_texts
 from app.llm.dates import date_keys, number_date_keys
 from app.llm.evidence import to_evidence
+from app.llm.spans import locate_findings
 from app.llm.triggers import case_applies
 from app.schemas.review import Category, Evidence, Finding, Severity
 
@@ -276,7 +277,7 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
         criteria_ids += judged.criteria_ids
         findings.append(
             Finding(
-                detection_type=_detection_type(judged.quote, state),
+                detection_type="SEMANTIC",
                 category=judged.category,
                 severity=judged.severity,
                 quote=judged.quote,
@@ -322,24 +323,14 @@ def resolve(judgment: Judgment, state: ReviewState, catalog: list[CatalogItem]) 
     return {
         "evidence_sufficient": sufficient,
         "risk": risk,
-        "findings": findings,
+        "findings": locate_findings(state["source_text"], findings),
         "related_criteria": criteria_texts(criteria_ids) if findings else [],
         "summary": summary,
     }
 
 
-def _detection_type(quote: str, state: ReviewState) -> Literal["BANNED_WORD", "SEMANTIC"]:
-    """A finding is BANNED_WORD when its quote and a detected banned expression overlap."""
-    text = normalize(quote)
-    for hit in state["rule_hits"]:
-        term = normalize(hit.expression)
-        if term and (term in text or text in term):
-            return "BANNED_WORD"
-    return "SEMANTIC"
-
-
 def _uncovered_banned_findings(state: ReviewState, findings: list[Finding]) -> list[Finding]:
-    """One BANNED_WORD finding per detected banned expression no finding already points at."""
+    """Keep uncovered local signals for semantic/human review; BE owns the dictionary."""
     quotes = [normalize(f.quote) for f in findings]
     added: list[Finding] = []
     for hit in state["rule_hits"]:
@@ -349,11 +340,11 @@ def _uncovered_banned_findings(state: ReviewState, findings: list[Finding]) -> l
         quotes.append(term)
         added.append(
             Finding(
-                detection_type="BANNED_WORD",
+                detection_type="SEMANTIC",
                 category=hit.category,
                 severity=hit.severity,
                 quote=hit.expression,
-                reason=f"금기어 사전에 등록된 표현입니다(사전 위험도 {hit.severity}).",
+                reason="의미 검토 참고 표현으로 탐지되어 문맥 확인이 필요합니다.",
                 evidence=[],
                 needs_human_review=True,
             )
