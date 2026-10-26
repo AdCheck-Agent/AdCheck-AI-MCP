@@ -30,7 +30,7 @@ class SearchResult(BaseModel):
     message: str
 
 
-CheckpointLevel = Literal[
+ReviewStage = Literal[
     "BANNED_WORD_CHECK",
     "SOCIAL_HISTORICAL_SEARCH",
     "COMPANY_VALUES_SEARCH",
@@ -38,8 +38,22 @@ CheckpointLevel = Literal[
     "FINAL_ASSESSMENT",
     "ALTERNATIVE_GENERATION",
     "OUTPUT_VALIDATION",
-    "COMPLETED",
 ]
+CheckpointLevel = Literal[ReviewStage, "COMPLETED", "FAILED"]
+
+
+class CheckpointError(BaseModel):
+    """Why the review could not finish; sent only with the FAILED CP."""
+
+    model_config = ConfigDict(extra="forbid")
+    code: Literal["REVIEW_TIMEOUT", "REVIEW_ERROR"]
+    message: str = Field(min_length=1, max_length=500)
+    # The stage that was running when it failed; None when no stage had started.
+    stage: ReviewStage | None = None
+    # The agent's trace for this review, so the backend can match it like a COMPLETED result.
+    trace_id: str = Field(pattern=r"^trace_[0-9a-f]{32}$")
+
+
 CheckpointStatus = Literal["ok", "timeout", "unavailable", "error"]
 
 

@@ -6,6 +6,7 @@ from app.clients.business_mcp_client import CheckpointResult
 from app.events import Stage, StageEvent, StageStatus, StageTracker, current_tracker
 from app.graph.state import initial_state
 from app.schemas.review import ReviewRequest
+from app.services.review import run_review
 
 ID = "550e8400-e29b-41d4-a716-446655440000"
 OK = CheckpointResult(status="ok", message="ok")
@@ -15,14 +16,17 @@ class Tools:
     def __init__(self, results=None, delay=0.0) -> None:
         self.calls: list[tuple[str, str]] = []
         self.payloads: list[dict] = []
+        self.errors: list[dict] = []
         self.results = list(results or [])
         self.delay = delay
 
-    async def save_checkpoint(self, original_text_id, checkpoint_level, result=None):
+    async def save_checkpoint(self, original_text_id, checkpoint_level, result=None, error=None):
         await asyncio.sleep(self.delay)
         self.calls.append((original_text_id, checkpoint_level))
         if result is not None:
             self.payloads.append(result)
+        if error is not None:
+            self.errors.append(error)
         if self.results:
             result = self.results.pop(0)
             if isinstance(result, Exception):
@@ -166,11 +170,45 @@ def test_route_saves_stages_then_completed(monkeypatch) -> None:
     assert "summary" in tools.payloads[0] and "findings" in tools.payloads[0]
 
 
-def test_route_failed_review_is_never_completed(monkeypatch) -> None:
+def test_route_failed_review_sends_failed_not_completed(monkeypatch) -> None:
     tools = Tools()
     response = _post(tools, monkeypatch, break_graph=True)
     assert response.status_code == 202
-    assert "COMPLETED" not in [level for _, level in tools.calls]
+    assert [level for _, level in tools.calls] == ["FAILED"]
+    assert tools.payloads == []
+    assert tools.errors == [
+        {
+            "code": "REVIEW_ERROR",
+            "message": "검수 중 오류가 발생했습니다 (RuntimeError).",
+            "stage": None,
+            "trace_id": response.json()["trace_id"],
+        }
+    ]
+
+
+async def test_timed_out_review_sends_failed_with_the_running_stage() -> None:
+    class Slow:
+        async def ainvoke(self, state):
+            tracker = current_tracker.get()
+            tracker.emit(Stage.BANNED_WORD_CHECK, StageStatus.RUNNING)
+            tracker.emit(Stage.BANNED_WORD_CHECK, StageStatus.SUCCEEDED)
+            tracker.emit(Stage.FINAL_ASSESSMENT, StageStatus.RUNNING)
+            await asyncio.sleep(5)
+
+    tools = Tools()
+    state = initial_state(
+        ReviewRequest(text="새로운 상품", context={"channel": "sns"}, review_id=ID)
+    )
+    assert await run_review(state, Slow(), timeout_seconds=0.05, checkpoint_tools=tools) is None
+    assert [level for _, level in tools.calls] == ["BANNED_WORD_CHECK", "FAILED"]
+    assert tools.errors == [
+        {
+            "code": "REVIEW_TIMEOUT",
+            "message": "검수 제한 시간(0.05초)을 넘겼습니다.",
+            "stage": "FINAL_ASSESSMENT",
+            "trace_id": state["trace_id"],
+        }
+    ]
 
 
 def test_route_backend_down_does_not_fail_the_review(monkeypatch) -> None:

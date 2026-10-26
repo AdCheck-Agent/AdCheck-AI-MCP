@@ -5,7 +5,7 @@ from uuid import UUID
 import httpx
 
 from business_mcp.config import Settings, get_settings
-from business_mcp.schemas import CheckpointLevel, CheckpointResult
+from business_mcp.schemas import CheckpointError, CheckpointLevel, CheckpointResult
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +41,7 @@ async def save_checkpoint(
     transport: httpx.AsyncBaseTransport | None = None,
     *,
     result: dict | None = None,
+    error: CheckpointError | None = None,
 ) -> CheckpointResult:
     """Save the review stage on the backend. One attempt, no retry.
 
@@ -51,6 +52,8 @@ async def save_checkpoint(
     UUID(original_text_id)  # the backend requires a UUID; fail before any network call
     if result is not None and checkpoint_level != "COMPLETED":
         raise ValueError("result는 COMPLETED CP에만 포함할 수 있습니다.")
+    if (error is not None) != (checkpoint_level == "FAILED"):
+        raise ValueError("error는 FAILED CP에 반드시, FAILED CP에만 포함합니다.")
     config = settings if settings is not None else get_settings()
     key = config.internal_api_key
     if not config.adcheck_be_base_url or key is None or not key.get_secret_value().strip():
@@ -62,6 +65,8 @@ async def save_checkpoint(
     payload = {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level}
     if result is not None:
         payload["result"] = result
+    if error is not None:
+        payload["error"] = error.model_dump(mode="json")
     try:
         async with asyncio.timeout(config.checkpoint_timeout_seconds):
             async with httpx.AsyncClient(transport=transport, follow_redirects=False) as http:

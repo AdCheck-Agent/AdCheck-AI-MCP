@@ -3,10 +3,11 @@ import json
 import httpx
 import pytest
 from business_mcp.config import Settings
-from business_mcp.schemas import CheckpointResult
+from business_mcp.schemas import CheckpointError, CheckpointResult
 from business_mcp.tools.save_checkpoint import save_checkpoint
 
 ID = "550e8400-e29b-41d4-a716-446655440000"
+TRACE = "trace_0123456789abcdef0123456789abcdef"
 
 
 def settings(**extra) -> Settings:
@@ -114,3 +115,47 @@ async def test_mcp_tool_validates_arguments() -> None:
     assert bad_id.isError is True
     assert CheckpointResult.model_validate(unconfigured.structuredContent).status == "unavailable"
     assert unconfigured.isError is True
+
+
+async def test_failed_cp_sends_the_error() -> None:
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(json.loads(request.content))
+        return httpx.Response(200, json={"message": "ok"})
+
+    error = CheckpointError(
+        code="REVIEW_TIMEOUT", message="시간 초과", stage="FINAL_ASSESSMENT", trace_id=TRACE
+    )
+    result = await save_checkpoint(
+        ID, "FAILED", settings(), httpx.MockTransport(handler), error=error
+    )
+    assert result.status == "ok"
+    assert seen == [
+        {
+            "original_text_id": ID,
+            "checkpoint_level": "FAILED",
+            "error": {
+                "code": "REVIEW_TIMEOUT",
+                "message": "시간 초과",
+                "stage": "FINAL_ASSESSMENT",
+                "trace_id": TRACE,
+            },
+        }
+    ]
+
+
+@pytest.mark.parametrize(
+    ("level", "error"),
+    [
+        ("FAILED", None),
+        ("COMPLETED", CheckpointError(code="REVIEW_ERROR", message="m", trace_id=TRACE)),
+        ("FINAL_ASSESSMENT", CheckpointError(code="REVIEW_ERROR", message="m", trace_id=TRACE)),
+    ],
+)
+async def test_error_only_and_always_with_failed(level: str, error) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        raise AssertionError("must fail before any network call")
+
+    with pytest.raises(ValueError):
+        await save_checkpoint(ID, level, settings(), httpx.MockTransport(handler), error=error)

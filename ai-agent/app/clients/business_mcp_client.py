@@ -36,7 +36,11 @@ class CheckpointResult(BaseModel):
 
 class CheckpointTools(Protocol):
     async def save_checkpoint(
-        self, original_text_id: str, checkpoint_level: str, result: dict | None = None
+        self,
+        original_text_id: str,
+        checkpoint_level: str,
+        result: dict | None = None,
+        error: dict | None = None,
     ) -> CheckpointResult: ...
 
 
@@ -103,11 +107,17 @@ class BusinessMCPTransportClient:
         return RecentIssueResult.model_validate(content)
 
     async def save_checkpoint(
-        self, original_text_id: str, checkpoint_level: str, result: dict | None = None
+        self,
+        original_text_id: str,
+        checkpoint_level: str,
+        result: dict | None = None,
+        error: dict | None = None,
     ) -> CheckpointResult:
         """Ask the Business server to record the finished stage on the backend."""
         arguments = {"original_text_id": original_text_id, "checkpoint_level": checkpoint_level}
         if result is not None:
             arguments["result"] = result
+        if error is not None:
+            arguments["error"] = error
         content = await self._call_tool("save_checkpoint", arguments)
         return CheckpointResult.model_validate(content)
