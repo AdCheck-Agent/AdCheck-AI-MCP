@@ -10,7 +10,13 @@ from mcp.types import CallToolResult, TextContent
 from pydantic import StringConstraints
 
 from business_mcp.config import Settings, get_settings
-from business_mcp.schemas import CheckpointLevel, CheckpointResult, SearchQuery, SearchResult
+from business_mcp.schemas import (
+    CheckpointError,
+    CheckpointLevel,
+    CheckpointResult,
+    SearchQuery,
+    SearchResult,
+)
 from business_mcp.tools.save_checkpoint import save_checkpoint
 from business_mcp.tools.search_recent_issue import search_recent_issue
 
@@ -75,19 +81,19 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         original_text_id: Annotated[str, StringConstraints(strip_whitespace=True)],
         checkpoint_level: CheckpointLevel,
         result: dict | None = None,
+        error: CheckpointError | None = None,
     ) -> Annotated[CallToolResult, CheckpointResult]:
-        """Save a finished stage; COMPLETED may include the final review result."""
+        """Save a finished stage; COMPLETED may include the final result, FAILED needs error."""
         try:
             result = await save_checkpoint(
                 original_text_id,
                 checkpoint_level,
                 settings if settings is not None else get_settings(),
                 result=result,
+                error=error,
             )
         except ValueError as exc:
-            result = CheckpointResult(
-                status="error", message=f"CP 요청 형식을 확인하세요: {exc}"
-            )
+            result = CheckpointResult(status="error", message=f"CP 요청 형식을 확인하세요: {exc}")
         return CallToolResult(
             content=[TextContent(type="text", text=result.model_dump_json())],
             structuredContent=result.model_dump(mode="json"),

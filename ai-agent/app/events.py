@@ -82,10 +82,12 @@ class StageTracker:
             if stage not in self.statuses:
                 self.emit(stage, StageStatus.SKIPPED)
 
-    def fail_running(self) -> None:
+    def fail_running(self) -> list[Stage]:
+        """Mark every running stage as failed and return them."""
         running = [s for s, st in self.statuses.items() if st == StageStatus.RUNNING]
         for stage in running:
             self.emit(stage, StageStatus.FAILED)
+        return running
 
 
 current_tracker: ContextVar[StageTracker | None] = ContextVar("current_tracker", default=None)

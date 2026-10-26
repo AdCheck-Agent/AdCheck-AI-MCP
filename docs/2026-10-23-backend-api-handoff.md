@@ -165,9 +165,29 @@ curl -X PUT http://localhost:8001/api/v1/companies/taegeon_beauty/documents/taeg
 }
 ```
 
-`needs_review`도 정상 완료이며, 실행 예외·시간 초과 시에는 `COMPLETED`를 보내지 않는다.
+`needs_review`도 정상 완료이다. 실행 예외·시간 초과로 검수를 끝내지 못하면 `COMPLETED` 대신 `FAILED`를 보낸다.
+
+```json
+{
+  "original_text_id": "a0000000-0000-4000-8000-000000000001",
+  "checkpoint_level": "FAILED",
+  "error": {
+    "code": "REVIEW_TIMEOUT",
+    "message": "검수 제한 시간(60초)을 넘겼습니다.",
+    "stage": "FINAL_ASSESSMENT",
+    "trace_id": "trace_aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+  }
+}
+```
+
+- `error.code`: `REVIEW_TIMEOUT`(시간 초과) | `REVIEW_ERROR`(실행 예외)
+- `error.stage`: 실패할 때 진행 중이던 단계. 어떤 단계도 시작하기 전이면 `null`
+- `error.trace_id`: 접수 응답의 trace_id. `COMPLETED`의 `result.trace_id`와 같은 용도
+- `error`는 `FAILED`에만, `FAILED`에는 반드시 넣는다. `result`는 넣지 않는다.
+- BE 대응 요청은 [실패 CP 전달 문서](2026-10-26-failed-checkpoint-handoff.md)에 정리했다.
+
 CP는 순서대로 전송하고 재시도 가능 오류는 한 번 재시도한다.
-CP 전송이 끝내 실패하면 로그로 남긴다. 별도 실패 CP와 BE 대기 만료는 후속 작업이다.
+CP 전송이 끝내 실패하면 로그로 남긴다. BE·Agent 연결 장애로 마지막 CP 자체가 도착하지 않는 경우에 대비한 BE 대기 만료는 후속 작업이다.
 
 검수 결과 구조 예시 (접수 응답과 별개):
 

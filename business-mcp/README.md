@@ -155,10 +155,11 @@ score는 관련성 점수이며 사실일 확률이 아닙니다. 기간 필터�
 
 Agent가 검수 단계를 마칠 때마다 호출해 BE에 진행 상황을 저장합니다.
 
-- 입력: `original_text_id`(UUID, Agent 요청의 `review_id`), `checkpoint_level`, 선택 `result`
+- 입력: `original_text_id`(UUID, Agent 요청의 `review_id`), `checkpoint_level`, 선택 `result`·`error`
 - 단계: `BANNED_WORD_CHECK`, `SOCIAL_HISTORICAL_SEARCH`, `COMPANY_VALUES_SEARCH`, `EXTERNAL_SEARCH`,
-  `FINAL_ASSESSMENT`, `ALTERNATIVE_GENERATION`, `OUTPUT_VALIDATION`, `COMPLETED`
+  `FINAL_ASSESSMENT`, `ALTERNATIVE_GENERATION`, `OUTPUT_VALIDATION`, `COMPLETED`, `FAILED`
 - `result`(최종 `ReviewResponse`)는 `COMPLETED`에만 넣을 수 있습니다.
+- `error`(`code`: `REVIEW_TIMEOUT` | `REVIEW_ERROR`, `message`, `stage`, `trace_id`)는 `FAILED`에만, `FAILED`에는 반드시 넣습니다.
 - BE 호출: `PATCH {ADCHECK_BE_BASE_URL}/api/v1/reviews/checkpoint`, 헤더 `X-Internal-Key: {INTERNAL_API_KEY}`
 - 반환: `CheckpointResult`(`ok | timeout | unavailable | error`, HTTP 상태, BE 오류 코드). `ok`가 아니면 `isError: true`
 - Tool은 한 번만 보내고 스스로 재시도하지 않습니다. BE는 받은 단계로 덮어쓰므로, 늦게 도착한 재시도가 단계를 되돌릴 수 있기 때문입니다.
@@ -173,7 +174,7 @@ CHECKPOINT_ENABLED=true                                # Agent 쪽 설정
 
 Agent는 [checkpoint.py](../ai-agent/app/checkpoint.py)에서 이벤트를 큐에 쌓아 한 건씩 순서대로 보냅니다.
 노드는 기다리지 않으므로 BE가 느리거나 실패해도 검수는 계속됩니다. 실패·건너뛴 단계는 보내지 않고,
-실행 예외·시간 초과 시에는 `COMPLETED`를 보내지 않습니다. 끝내 저장하지 못한 단계는 로그(`checkpoint not saved`)에 남습니다.
+실행 예외·시간 초과 시에는 `COMPLETED` 대신 `FAILED`와 `error`를 보냅니다. 끝내 저장하지 못한 단계는 로그(`checkpoint not saved`)에 남습니다.
 
 ## Agent 연결 위치
 

@@ -65,8 +65,25 @@ async def test_unreachable_server_is_reported_as_value_error() -> None:
         await client.search_recent_issue("확인할 사실")
 
 
-@pytest.mark.parametrize("final_result", [None, {"status": "needs_review", "summary": "확인 필요"}])
-async def test_save_checkpoint_goes_through_mcp_to_the_backend(monkeypatch, final_result) -> None:
+FAILURE = {
+    "code": "REVIEW_TIMEOUT",
+    "message": "시간 초과",
+    "stage": "FINAL_ASSESSMENT",
+    "trace_id": "trace_0123456789abcdef0123456789abcdef",
+}
+
+
+@pytest.mark.parametrize(
+    ("level", "final_result", "error"),
+    [
+        ("FINAL_ASSESSMENT", None, None),
+        ("COMPLETED", {"status": "needs_review", "summary": "확인 필요"}, None),
+        ("FAILED", None, FAILURE),
+    ],
+)
+async def test_save_checkpoint_goes_through_mcp_to_the_backend(
+    monkeypatch, level, final_result, error
+) -> None:
     import json
 
     import business_mcp.tools.save_checkpoint as tool_module
@@ -91,14 +108,14 @@ async def test_save_checkpoint_goes_through_mcp_to_the_backend(monkeypatch, fina
         ) as http:
             client = BusinessMCPTransportClient("http://localhost:8002/mcp", http_client=http)
             id_ = "550e8400-e29b-41d4-a716-446655440000"
-            level = "COMPLETED" if final_result else "FINAL_ASSESSMENT"
-            result = await client.save_checkpoint(id_, level, result=final_result)
+            result = await client.save_checkpoint(id_, level, result=final_result, error=error)
     assert result.status == "ok"
     assert seen == [
         (
             "PATCH",
             "/api/v1/reviews/checkpoint",
             {"original_text_id": id_, "checkpoint_level": level}
-            | ({"result": final_result} if final_result else {}),
+            | ({"result": final_result} if final_result else {})
+            | ({"error": error} if error else {}),
         )
     ]
