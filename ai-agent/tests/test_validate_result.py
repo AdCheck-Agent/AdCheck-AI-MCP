@@ -31,8 +31,10 @@ def make(status: str, findings: list[Finding], **kw) -> ReviewState:
     return state
 
 
-def test_valid_revise_passes_untouched() -> None:
-    assert validate_result(make("revise", [finding()])) == {}
+def test_valid_revise_gets_positions_without_changing_verdict() -> None:
+    result = validate_result(make("revise", [finding()]))
+    assert "status" not in result
+    assert result["findings"][0].start_offset == TEXT.index("탱크데이")
 
 
 def test_valid_pass_passes_untouched() -> None:

@@ -3,8 +3,8 @@ import pytest
 from app.events import Stage, StageEvent, StageStatus, StageTracker, current_tracker
 from app.graph.graph import tracked
 from app.graph.nodes.validate_result import validate_result
-from app.graph.state import RuleHit, initial_state
-from app.llm.judge import _detection_type, build_user_prompt
+from app.graph.state import initial_state
+from app.llm.judge import build_user_prompt
 from app.schemas.review import ReviewRequest
 from pydantic import ValidationError
 
@@ -139,13 +139,19 @@ def test_posting_date_reaches_the_judge_prompt_only_when_given() -> None:
     assert "<context>" in prompt and "2026-05-18T10:00:00+09:00" in prompt
 
 
-def test_detection_type_marks_banned_words_only() -> None:
-    state = initial_state(request())
-    state["rule_hits"] = [
-        RuleHit(expression="안 사면 평생 후회", category="fear_and_anxiety", severity="medium")
-    ]
-    assert _detection_type("안 사면 평생 후회", state) == "BANNED_WORD"
-    assert _detection_type("탱크데이", state) == "SEMANTIC"
+def test_agent_findings_are_semantic_even_for_legacy_banned_type() -> None:
+    from app.llm.spans import locate_findings
+    from app.schemas.review import Finding
+
+    item = Finding(
+        detection_type="BANNED_WORD",
+        category="social_issue",
+        severity="high",
+        quote="위험 문구",
+        reason="확인",
+        needs_human_review=True,
+    )
+    assert locate_findings("위험 문구", [item])[0].detection_type == "SEMANTIC"
 
 
 def test_missing_information_names_the_gaps() -> None:

@@ -10,6 +10,7 @@ from app.llm.client import ReviewModel
 from app.llm.dates import date_keys
 from app.llm.judge import SYSTEM_PROMPT as JUDGE_PROMPT
 from app.llm.judge import build_catalog, build_user_prompt, call_model, resolve
+from app.llm.spans import apply_with_spans
 from app.schemas.review import Finding
 
 logger = logging.getLogger(__name__)
@@ -109,9 +110,12 @@ def _keeps_risk_term(finding: Finding, suggestion: str) -> set[str]:
     return kept
 
 
-def _repeats_rest(source: str, quote: str, suggestion: str) -> set[str]:
+def _repeats_rest(source: str, finding: Finding, suggestion: str) -> set[str]:
     """Parts of the ad outside the quote that the suggestion repeats; they would appear twice."""
-    rest = source.replace(quote, "\n", 1)
+    removed = apply_with_spans(source, [finding.model_copy(update={"suggestion": "\n"})])
+    if removed is None:
+        return set()
+    rest = removed[0]
     parts = {p.strip() for p in re.split(r"[\n,.!?]", rest) if len(normalize(p)) >= 4}
     text = normalize(suggestion)
     return {p for p in parts if normalize(p) in text}
@@ -179,24 +183,14 @@ def _validate(
         if any(term and term in normalized for term in reused):
             return None, set()
         kept_terms |= _keeps_risk_term(finding, suggestion)
-        kept_terms |= _repeats_rest(state["source_text"], finding.quote, suggestion)
+        kept_terms |= _repeats_rest(state["source_text"], finding, suggestion)
         result.append(finding.model_copy(update={"suggestion": suggestion}))
     return result, kept_terms
 
 
 def apply_suggestions(source: str, findings: list[Finding]) -> str | None:
-    """The ad text with each quote swapped for its suggestion; None if a quote is not found."""
-    text = source
-    for finding in findings:
-        if finding.quote not in text:
-            return None
-        text = text.replace(finding.quote, finding.suggestion or "", 1)
-    return text
-
-
-def _span(text: str, part: str) -> tuple[int, int] | None:
-    start = text.find(part) if part else -1
-    return (start, start + len(part)) if start != -1 else None
+    applied = apply_with_spans(source, findings)
+    return applied[0] if applied is not None else None
 
 
 def risky_suggestions(
@@ -215,10 +209,11 @@ def recheck(
     The fixed ad is judged again with the same evidence. Only a finding that touches the text a
     suggestion put in counts, so wording the first review left alone cannot reject a fix.
     """
-    revised = apply_suggestions(state["source_text"], findings)
-    if revised is None:
-        logger.warning("suggestions could not be applied; recheck skipped")
-        return [], set()
+    applied = apply_with_spans(state["source_text"], findings)
+    if applied is None:
+        logger.warning("suggestion positions conflict or cannot be applied")
+        return None
+    revised, replacements = applied
     rechecked = {**state, "source_text": revised, "rule_hits": find_rule_hits(revised)}
     catalog = build_catalog(rechecked)
     judgment = call_model(model, JUDGE_PROMPT, build_user_prompt(rechecked, catalog))
@@ -237,13 +232,10 @@ def recheck(
             normalize(t) in normalize(s.suggestion or "") for t in f.trigger_terms for s in findings
         )
     ]
-    text = normalize(revised)
-    quotes = [s for s in (_span(text, normalize(f.quote)) for f in flagged) if s]
+    quotes = [(f.start_offset, f.end_offset) for f in flagged if f.start_offset is not None]
     risky = [
-        f.suggestion or ""
-        for f in findings
-        if (span := _span(text, normalize(f.suggestion or "")))
-        and any(q[0] < span[1] and span[0] < q[1] for q in quotes)
+        suggestion for suggestion, start, end in replacements
+        if any(q[0] < end and start < q[1] for q in quotes)
     ]
     terms = {t for f in flagged for t in f.trigger_terms} if risky else set()
     return risky, terms

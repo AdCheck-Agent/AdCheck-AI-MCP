@@ -39,11 +39,11 @@ def resolve_with(risk: str, *quotes: str) -> dict:
 
 def test_banned_expression_the_model_skipped_is_still_listed() -> None:
     result = resolve_with("yes", "탱크데이")
-    banned = [f for f in result["findings"] if f.detection_type == "BANNED_WORD"]
+    banned = [f for f in result["findings"] if f.quote == "안 사면 평생 후회"]
     assert [f.quote for f in banned] == ["안 사면 평생 후회"]
     assert banned[0].needs_human_review and banned[0].severity == "medium"
     semantic = [f for f in result["findings"] if f.detection_type == "SEMANTIC"]
-    assert [f.quote for f in semantic] == ["탱크데이"]
+    assert [f.quote for f in semantic] == ["탱크데이", "안 사면 평생 후회"]
 
 
 def test_banned_expression_the_model_already_flagged_is_not_duplicated() -> None:
@@ -51,7 +51,7 @@ def test_banned_expression_the_model_already_flagged_is_not_duplicated() -> None
     quotes = [f.quote for f in result["findings"]]
     assert quotes.count("안 사면 평생 후회") == 1
     assert {f.detection_type for f in result["findings"] if f.quote == "안 사면 평생 후회"} == {
-        "BANNED_WORD"
+        "SEMANTIC"
     }
 
 
